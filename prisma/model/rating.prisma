@@ -1,0 +1,21 @@
+model Review {
+  id                String          @id @default(uuid())
+  comment           String?         @db.Text
+  rating            Float           // e.g., 1 to 5
+  
+  // Relations
+  userId            String
+  user              UserProfile     @relation(fields: [userId], references: [id])
+
+  providerId        String
+  provider          ProviderProfile @relation(fields: [providerId], references: [id])
+
+  // Critical: Only one review per booking to ensure they purchased it
+  bookingId         String          @unique
+  booking           Booking         @relation(fields: [bookingId], references: [id])
+
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@map("reviews")
+}

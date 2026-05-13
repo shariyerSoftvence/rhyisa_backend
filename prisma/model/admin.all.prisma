@@ -1,0 +1,13 @@
+model Specialization {
+  id              String            @id @default(uuid())
+  name            String            @unique
+  description     String?
+
+  profiles        ProviderProfile[]
+
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@index([name])
+  @@map("specializations")
+}

@@ -1,0 +1,89 @@
+model Auth {
+  id                    String              @id @default(uuid())
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  role                  RoleType            @default(USER)
+
+  fullName              String
+  password               String
+  email                  String                  @unique
+
+  firebaseUid       String?         @unique
+  loginType         LoginType       @default(EMAIL)
+
+  otps                  OTP[]
+  refreshTokens         RefreshToken[]
+
+  providerProfile       ProviderProfile?
+
+  userProfile       UserProfile?
+
+
+  conversationsAsOne Conversation[] @relation("ParticipantOne")
+  conversationsAsTwo Conversation[] @relation("ParticipantTwo")
+  messagesSent      Message[]      @relation("SentMessages")
+  notifications     Notification[] @relation("UserNotifications")
+
+
+  isEmailVerified       Boolean                 @default(false)
+}
+
+
+enum LoginType {
+  EMAIL
+  GOOGLE
+  APPLE
+}
+
+enum RoleType {
+  USER
+  PROVIDER
+  ADMIN
+}
+
+model RefreshToken {
+  id          String    @id @default(uuid())
+
+  token       String    @unique
+
+  expiresAt   DateTime
+
+  isRevoked   Boolean   @default(false)
+
+  createdAt   DateTime  @default(now())
+
+  authId      String
+  auth        Auth      @relation(fields: [authId], references: [id], onDelete: Cascade)
+
+  @@index([authId])
+}
+
+
+model OTP {
+  id          String      @id @default(uuid())
+  code        String
+  type        OTPType
+  expiresAt   DateTime
+  
+  isUsed      Boolean     @default(false)
+  attempt     Int         @default(0)
+  createdAt   DateTime    @default(now())
+
+  authId      String
+  auth        Auth        @relation(fields: [authId], references: [id], onDelete: Cascade)
+
+  @@index([authId])
+  @@index([code])
+  @@map("otps")
+}
+
+
+
+enum OTPType {
+  EMAIL_VERIFICATION
+  FORGOT_PASSWORD
+  LOGIN
+}
+
+
+

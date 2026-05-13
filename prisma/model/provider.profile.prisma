@@ -1,0 +1,90 @@
+model ProviderProfile {
+  id              String   @id @default(uuid())
+
+  location        String  
+  description     String   @db.Text 
+
+  profileImageId  String?         @unique
+  profileImage    Media?          @relation("ProfileImage", fields: [profileImageId], references: [id])
+
+  driverLicenseId String?         @unique
+  driverLicense   Media?          @relation("DriverLicense", fields: [driverLicenseId], references: [id])
+
+  certificateId   String?         @unique
+  certificate     Media?          @relation("Certificate", fields: [certificateId], references: [id])
+  
+
+  specializationId String?
+  specialization   Specialization? @relation(fields: [specializationId], references: [id])
+
+  availabilities   ProviderAvailability[]
+
+  services         Service[]
+  bookings         Booking[]
+  reviews          Review[]
+
+  stripeAccountId  String?               @unique
+  isPaymentEnabled Boolean               @default(false)
+
+  authId          String   @unique
+  auth            Auth     @relation(fields: [authId], references: [id], onDelete: Cascade)
+
+  status           ProviderStatus        @default(PENDING)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+
+enum ProviderStatus {
+PENDING
+ACCEPTED
+REJECTED
+}
+
+
+model Service {
+  id                String          @id @default(uuid())
+  name              String 
+  price             Float         
+  durationInMinutes Int       
+
+  bookings          Booking[]
+
+  providerProfileId String
+  providerProfile   ProviderProfile @relation(fields: [providerProfileId], references: [id], onDelete: Cascade)
+
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@map("services")
+}
+
+
+
+
+
+model ProviderAvailability {
+  id                String          @id @default(uuid())
+  day               DayOfWeek
+  fromTime          String?        
+  toTime            String?      
+  isOff             Boolean         @default(false)
+
+  // Link to Provider
+  providerProfileId String
+  providerProfile   ProviderProfile @relation(fields: [providerProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([providerProfileId, day]) 
+  @@map("provider_availabilities")
+}
+
+enum DayOfWeek {
+  SATURDAY
+  SUNDAY
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+}

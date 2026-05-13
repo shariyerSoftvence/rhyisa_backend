@@ -1,0 +1,81 @@
+model UserProfile {
+  id                String    @id @default(uuid())
+  fullName          String
+  phoneNumber       String?
+  address           String?
+  
+  // Relationship to Auth
+  authId            String    @unique
+  auth              Auth      @relation(fields: [authId], references: [id], onDelete: Cascade)
+
+  healthLogs        UserDailyHealthLog[]
+
+  bookings          Booking[]
+  reviews           Review[]
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}
+
+
+model UserDailyHealthLog {
+  id              String   @id @default(uuid())
+  date            DateTime @default(now())
+  
+
+  steps           Int      @default(0)
+  stepsGoal       Int      @default(6000)
+  sleepHours      Int   
+  sleepMinutes    Int
+  
+  mood            MoodType?
+
+  energyLevel     Int      @default(1) 
+  energyGoal      Int      @default(5)
+
+  stressLevel     StressType?
+
+  hungerLevel     HungerType?
+
+  cravings        String? 
+  
+  // Metrics with Goals
+  calories        Int      @default(0)
+  calorieGoal     Int      @default(2000)
+  
+  waterGlasses    Int      @default(0)
+  waterGoal       Int      @default(8)
+  
+  proteinGrams    Int      @default(0)
+  proteinGoal     Int      @default(120)
+
+  // Overall Score
+  healthScore     Int      @default(0) 
+
+  userProfileId   String
+  userProfile     UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([userProfileId, date]) 
+  @@index([userProfileId])
+  @@map("daily_health_logs")
+}
+
+enum MoodType {
+  STEADY
+  HAPPY
+  SAD
+  ANXIOUS
+  IRRITABLE
+}
+
+enum StressType {
+  LOW
+  MODERATE
+  HIGH
+}
+
+enum HungerType {
+  LOW
+  MODERATE
+  HIGH
+}
