@@ -1,61 +1,83 @@
 model UserProfile {
-  id                String    @id @default(uuid())
-  fullName          String
-  phoneNumber       String?
-  address           String?
-  
-  // Relationship to Auth
-  authId            String    @unique
-  auth              Auth      @relation(fields: [authId], references: [id], onDelete: Cascade)
+  id          String  @id @default(uuid())
+  fullName    String
+  phoneNumber String?
+  address     String?
 
-  healthLogs        UserDailyHealthLog[]
+  // Health Profile Fields
+  age              Int?
+  height           Float?
+  weight           Float?
+  bodyType         BodyType?
+  averageFatLevel  Float?
+  healthConditions String?
+  shortTermGoal    String?
+  longTermGoal     String?
 
-  bookings          Booking[]
-  reviews           Review[]
+  bodyPhotoId String? @unique
+  bodyPhoto   Media?  @relation("UserBodyPhoto", fields: [bodyPhotoId], references: [id])
 
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  // Subscription & Payment
+  subscriptionType SubscriptionType @default(FREE)
+  stripeCustomerId String?          @unique
+
+  // Relations
+  authId String @unique
+  auth   Auth   @relation(fields: [authId], references: [id], onDelete: Cascade)
+
+  healthLogs       UserDailyHealthLog[]
+  dataAccessGrants ProviderDataAccess[]
+
+  bookings Booking[]
+  reviews  Review[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
-
 model UserDailyHealthLog {
-  id              String   @id @default(uuid())
-  date            DateTime @default(now())
-  
+  id   String   @id @default(uuid())
+  date DateTime @default(now())
 
-  steps           Int      @default(0)
-  stepsGoal       Int      @default(6000)
-  sleepHours      Int   
-  sleepMinutes    Int
-  
-  mood            MoodType?
+  steps        Int @default(0)
+  stepsGoal    Int @default(6000)
+  sleepHours   Int
+  sleepMinutes Int
 
-  energyLevel     Int      @default(1) 
-  energyGoal      Int      @default(5)
+  mood MoodType?
 
-  stressLevel     StressType?
+  energyLevel Int @default(1)
+  energyGoal  Int @default(5)
 
-  hungerLevel     HungerType?
+  stressLevel StressType?
 
-  cravings        String? 
-  
+  hungerLevel HungerType?
+
+  cravings String?
+
   // Metrics with Goals
-  calories        Int      @default(0)
-  calorieGoal     Int      @default(2000)
-  
-  waterGlasses    Int      @default(0)
-  waterGoal       Int      @default(8)
-  
-  proteinGrams    Int      @default(0)
-  proteinGoal     Int      @default(120)
+  calories    Int @default(0)
+  calorieGoal Int @default(2000)
+
+  waterGlasses Int @default(0)
+  waterGoal    Int @default(8)
+
+  proteinGrams Int @default(0)
+  proteinGoal  Int @default(120)
+
+  carbsGrams Int @default(0)
+  carbsGoal  Int @default(250)
+
+  fatGrams Int @default(0)
+  fatGoal  Int @default(65)
 
   // Overall Score
-  healthScore     Int      @default(0) 
+  healthScore Int @default(0)
 
-  userProfileId   String
-  userProfile     UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+  userProfileId String
+  userProfile   UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
 
-  @@unique([userProfileId, date]) 
+  @@unique([userProfileId, date])
   @@index([userProfileId])
   @@map("daily_health_logs")
 }
@@ -78,4 +100,16 @@ enum HungerType {
   LOW
   MODERATE
   HIGH
+}
+
+enum BodyType {
+  ECTOMORPH
+  MESOMORPH
+  ENDOMORPH
+  OTHER
+}
+
+enum SubscriptionType {
+  FREE
+  PREMIUM
 }

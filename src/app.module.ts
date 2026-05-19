@@ -6,6 +6,7 @@ import { RedisModule } from './common/redis/redis.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { MailModule } from './common/mail/mail.module';
+import { OpenaiModule } from './openai/openai.module';
 
 
 @Module({
@@ -15,6 +16,7 @@ import { MailModule } from './common/mail/mail.module';
     PrismaModule,
     AuthModule,
     MailModule,
+    OpenaiModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -1,81 +1,79 @@
 model ProviderProfile {
-  id              String   @id @default(uuid())
+  id String @id @default(uuid())
 
-  location        String  
-  description     String   @db.Text 
+  location    String
+  description String @db.Text
 
-  profileImageId  String?         @unique
-  profileImage    Media?          @relation("ProfileImage", fields: [profileImageId], references: [id])
+  profileImageId String? @unique
+  profileImage   Media?  @relation("ProfileImage", fields: [profileImageId], references: [id])
 
-  driverLicenseId String?         @unique
-  driverLicense   Media?          @relation("DriverLicense", fields: [driverLicenseId], references: [id])
+  driverLicenseId String? @unique
+  driverLicense   Media?  @relation("DriverLicense", fields: [driverLicenseId], references: [id])
 
-  certificateId   String?         @unique
-  certificate     Media?          @relation("Certificate", fields: [certificateId], references: [id])
-  
+  certificateId String? @unique
+  certificate   Media?  @relation("Certificate", fields: [certificateId], references: [id])
 
   specializationId String?
   specialization   Specialization? @relation(fields: [specializationId], references: [id])
 
-  availabilities   ProviderAvailability[]
+  availabilities ProviderAvailability[]
 
-  services         Service[]
-  bookings         Booking[]
-  reviews          Review[]
+  services Service[]
+  bookings Booking[]
+  reviews  Review[]
 
-  stripeAccountId  String?               @unique
-  isPaymentEnabled Boolean               @default(false)
+  stripeAccountId  String? @unique
+  isPaymentEnabled Boolean @default(false)
 
-  authId          String   @unique
-  auth            Auth     @relation(fields: [authId], references: [id], onDelete: Cascade)
+  commissionType CommissionType @default(PERCENTAGE)
+  commissionRate Float          @default(10.0) // 10% by default
 
-  status           ProviderStatus        @default(PENDING)
+  dataAccessGrants ProviderDataAccess[]
 
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  authId String @unique
+  auth   Auth   @relation(fields: [authId], references: [id], onDelete: Cascade)
+
+  status ProviderStatus @default(PENDING)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
-
 
 enum ProviderStatus {
-PENDING
-ACCEPTED
-REJECTED
+  PENDING
+  ACCEPTED
+  REJECTED
 }
 
-
 model Service {
-  id                String          @id @default(uuid())
-  name              String 
-  price             Float         
-  durationInMinutes Int       
+  id                String @id @default(uuid())
+  name              String
+  price             Float
+  durationInMinutes Int
 
-  bookings          Booking[]
+  bookings Booking[]
 
   providerProfileId String
   providerProfile   ProviderProfile @relation(fields: [providerProfileId], references: [id], onDelete: Cascade)
 
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("services")
 }
 
-
-
-
-
 model ProviderAvailability {
-  id                String          @id @default(uuid())
-  day               DayOfWeek
-  fromTime          String?        
-  toTime            String?      
-  isOff             Boolean         @default(false)
+  id       String    @id @default(uuid())
+  day      DayOfWeek
+  fromTime String?
+  toTime   String?
+  isOff    Boolean   @default(false)
 
   // Link to Provider
   providerProfileId String
   providerProfile   ProviderProfile @relation(fields: [providerProfileId], references: [id], onDelete: Cascade)
 
-  @@unique([providerProfileId, day]) 
+  @@unique([providerProfileId, day])
   @@map("provider_availabilities")
 }
 
@@ -87,4 +85,33 @@ enum DayOfWeek {
   WEDNESDAY
   THURSDAY
   FRIDAY
+}
+
+enum CommissionType {
+  FLAT
+  PERCENTAGE
+}
+
+model ProviderDataAccess {
+  id String @id @default(uuid())
+
+  userId String
+  user   UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  providerId String
+  provider   ProviderProfile @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  status DataAccessStatus @default(PENDING)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, providerId])
+  @@map("provider_data_access")
+}
+
+enum DataAccessStatus {
+  PENDING
+  APPROVED
+  DENIED
 }

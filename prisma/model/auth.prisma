@@ -1,33 +1,33 @@
 model Auth {
-  id                    String              @id @default(uuid())
-  createdAt             DateTime            @default(now())
-  updatedAt             DateTime            @updatedAt
-  role                  RoleType            @default(USER)
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  role      RoleType @default(USER)
 
-  fullName              String
-  password               String
-  email                  String                  @unique
+  fullName String
+  password String
+  email    String @unique
 
-  firebaseUid       String?         @unique
-  loginType         LoginType       @default(EMAIL)
+  firebaseUid String?   @unique
+  loginType   LoginType @default(EMAIL)
 
-  otps                  OTP[]
-  refreshTokens         RefreshToken[]
+  otps          OTP[]
+  refreshTokens RefreshToken[]
 
-  providerProfile       ProviderProfile?
+  providerProfile ProviderProfile?
 
-  userProfile       UserProfile?
-
+  userProfile UserProfile?
 
   conversationsAsOne Conversation[] @relation("ParticipantOne")
   conversationsAsTwo Conversation[] @relation("ParticipantTwo")
-  messagesSent      Message[]      @relation("SentMessages")
-  notifications     Notification[] @relation("UserNotifications")
+  messagesSent       Message[]      @relation("SentMessages")
+  notifications      Notification[] @relation("UserNotifications")
 
+  callsInitiated    VideoCall[]    @relation("VideoCallsInitiated")
+  callsReceived     VideoCall[]    @relation("VideoCallsReceived")
 
-  isEmailVerified       Boolean                 @default(false)
+  isEmailVerified Boolean @default(false)
 }
-
 
 enum LoginType {
   EMAIL
@@ -39,51 +39,46 @@ enum RoleType {
   USER
   PROVIDER
   ADMIN
+  INSURANCE
 }
 
 model RefreshToken {
-  id          String    @id @default(uuid())
+  id String @id @default(uuid())
 
-  token       String    @unique
+  token String @unique
 
-  expiresAt   DateTime
+  expiresAt DateTime
 
-  isRevoked   Boolean   @default(false)
+  isRevoked Boolean @default(false)
 
-  createdAt   DateTime  @default(now())
+  createdAt DateTime @default(now())
 
-  authId      String
-  auth        Auth      @relation(fields: [authId], references: [id], onDelete: Cascade)
+  authId String
+  auth   Auth   @relation(fields: [authId], references: [id], onDelete: Cascade)
 
   @@index([authId])
 }
 
-
 model OTP {
-  id          String      @id @default(uuid())
-  code        String
-  type        OTPType
-  expiresAt   DateTime
-  
-  isUsed      Boolean     @default(false)
-  attempt     Int         @default(0)
-  createdAt   DateTime    @default(now())
+  id        String   @id @default(uuid())
+  code      String
+  type      OTPType
+  expiresAt DateTime
 
-  authId      String
-  auth        Auth        @relation(fields: [authId], references: [id], onDelete: Cascade)
+  isUsed    Boolean  @default(false)
+  attempt   Int      @default(0)
+  createdAt DateTime @default(now())
+
+  authId String
+  auth   Auth   @relation(fields: [authId], references: [id], onDelete: Cascade)
 
   @@index([authId])
   @@index([code])
   @@map("otps")
 }
 
-
-
 enum OTPType {
   EMAIL_VERIFICATION
   FORGOT_PASSWORD
   LOGIN
 }
-
-
-

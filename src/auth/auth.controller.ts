@@ -69,24 +69,24 @@ export class AuthController {
   }
 
  @Post('refresh')
-@ApiOperation({ summary: 'Refresh access token' })
-@ApiBody({
-  schema: {
-    type: 'object',
-    properties: {
-      refreshToken: {
-        type: 'string',
-        example: 'your_refresh_token_here',
+  @ApiOperation({ summary: 'Refresh access token' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        refreshToken: {
+          type: 'string',
+          example: 'your_refresh_token_here',
+        },
       },
+      required: ['refreshToken'],
     },
-    required: ['refreshToken'],
-  },
-})
-async refresh(
-  @Body('refreshToken') refreshToken: string,
-) {
-  return await this.authService.refreshToken(refreshToken);
-}
+  })
+  async refresh(
+    @Body('refreshToken') refreshToken: string,
+  ) {
+    return await this.authService.refreshToken(refreshToken);
+  }
 
   @Get('admin-only')
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -97,14 +97,14 @@ async refresh(
     return { message: 'Welcome Admin' };
   }
 
-@Post('logout')
-@ApiOperation({ summary: 'Logout user' })
-@ApiBody({ type: LogoutDto })
-async logout(
-  @Body() logoutDto: LogoutDto,
-) {
-  return this.authService.logout(
-    logoutDto.refreshToken,
-  );
-}
+  @Post('logout')
+  @ApiOperation({ summary: 'Logout user' })
+  @ApiBody({ type: LogoutDto })
+  async logout(
+    @Body() logoutDto: LogoutDto,
+  ) {
+    return this.authService.logout(
+      logoutDto.refreshToken,
+    );
+  }
 }

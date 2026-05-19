@@ -1,19 +1,22 @@
 model Media {
-  id           String    @id @default(uuid())
-  url          String   
-  key          String? 
-  fileName     String? 
-  mimeType     String?  
-  size         Int?      
-  type         MediaType @default(IMAGE)
+  id       String    @id @default(uuid())
+  url      String
+  key      String?
+  fileName String?
+  mimeType String?
+  size     Int?
+  type     MediaType @default(IMAGE)
 
   // Back relations for ProviderProfile
   providerAsAvatar      ProviderProfile? @relation("ProfileImage")
   providerAsLicense     ProviderProfile? @relation("DriverLicense")
   providerAsCertificate ProviderProfile? @relation("Certificate")
 
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  // Back relation for UserProfile
+  userAsBodyPhoto UserProfile? @relation("UserBodyPhoto")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("media")
 }

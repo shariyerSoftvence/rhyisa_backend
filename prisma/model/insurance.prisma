@@ -1,0 +1,11 @@
+model InsuranceCompany {
+  id           String  @id @default(uuid())
+  name         String  @unique
+  description  String? @db.Text
+  externalLink String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("insurance_companies")
+}
