@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Frontend Integration Guide: Real-Time Call WebSocket</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            font-size: 16px;
+            line-height: 1.5;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        pre, code {
+            background-color: #f4f4f4;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        pre {
+            padding: 16px;
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #f9f9f9;
+        }
+        h1, h2, h3 {
+            margin-top: 1.5em;
+        }
+        hr {
+            border: 0;
+            border-top: 1px solid #ccc;
+            margin: 2em 0;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Frontend Integration Guide: Real-Time Call WebSocket</h1>
+    <p>This document provides a simple, direct guide for frontend and app developers to integrate WebRTC audio/video calling using WebSockets for signaling.</p>
+    
+    <p><strong>Namespace</strong>: <code>/realtime-call</code> (Connect via this path)<br>
+    <strong>Authentication</strong>: Valid JWT Bearer token required in the connection handshake.</p>
+
+    <hr>
+
+    <h2>1. Connection Example</h2>
+    <p>Pass the token via the <code>auth</code> object when connecting.</p>
+
+<pre><code>import { io } from "socket.io-client";
+
+const socket = io("http://your-api-url/realtime-call", {
+  auth: {
+    token: "Bearer YOUR_JWT_TOKEN"
+  }
+});
+
+socket.on("connect", () => {
+    console.log("Connected to Real-Time Call signaling!", socket.id);
+});
+
+socket.on("connect_error", (err) => {
+    console.error("Connection failed:", err.message);
+});</code></pre>
+
+    <hr>
+
+    <h2>2. Events Overview</h2>
+    <p>A quick reference for Call Management and WebRTC Signaling events.</p>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Client Emit Event</th>
+                <th>Server Response / Listener</th>
+                <th>Input Payload (Type)</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong><code>start-call</code></strong></td>
+                <td><code>call-started</code> (to caller)<br><code>incoming-call</code> (to receiver)</td>
+                <td><code>{ hostUserId: UUID, recipientUserId: UUID, title?: string }</code></td>
+                <td>Initiate a new call to another user.</td>
+            </tr>
+            <tr>
+                <td><strong><code>accept-call</code></strong></td>
+                <td><code>call-active</code> (to caller)</td>
+                <td><code>{ callId: UUID, callerId: UUID }</code></td>
+                <td>Receiver accepts the incoming call.</td>
+            </tr>
+            <tr>
+                <td><strong><code>decline-call</code></strong></td>
+                <td><code>call-declined</code> (broadcast)</td>
+                <td><code>{ callId: UUID }</code></td>
+                <td>Receiver declines the incoming call.</td>
+            </tr>
+            <tr>
+                <td><strong><code>end-call</code></strong></td>
+                <td><code>call-ended</code> (to both users)</td>
+                <td><code>{ callId: UUID, callerId: UUID, receiverId: UUID }</code></td>
+                <td>End an active or ringing call.</td>
+            </tr>
+            <tr>
+                <td><strong><code>webrtc-offer</code></strong></td>
+                <td><code>webrtc-offer</code> (to receiver)</td>
+                <td><code>{ roomId: UUID, offer: any, receiverId: UUID }</code></td>
+                <td>WebRTC step: Caller sends session description.</td>
+            </tr>
+            <tr>
+                <td><strong><code>webrtc-answer</code></strong></td>
+                <td><code>webrtc-answer</code> (to caller)</td>
+                <td><code>{ roomId: UUID, answer: any, callerId: UUID }</code></td>
+                <td>WebRTC step: Receiver replies with session description.</td>
+            </tr>
+            <tr>
+                <td><strong><code>ice-candidate</code></strong></td>
+                <td><code>ice-candidate</code> (to target user)</td>
+                <td><code>{ roomId: UUID, candidate: any, targetUserId: UUID }</code></td>
+                <td>WebRTC step: Negotiate network path details.</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <hr>
+
+    <h2>3. Payload Details &amp; Explanations</h2>
+
+    <h3>Step 1: Making &amp; Receiving a Call</h3>
+
+    <p><strong>Start a Call</strong><br>
+    <em>Emit</em>: <code>start-call</code></p>
+<pre><code>{
+  "hostUserId": "your-user-uuid",
+  "recipientUserId": "recipient-user-uuid",
+  "title": "Optional Call Title"
+}</code></pre>
+
+    <p><strong>Call Started (Acknowledge to Caller)</strong><br>
+    <em>Listen</em>: <code>call-started</code></p>
+<pre><code>{
+  "callId": "call-uuid",
+  "to": "recipient-user-uuid",
+  "title": "Optional Call Title"
+}</code></pre>
+
+    <p><strong>Incoming Call (Triggered on Receiver's device)</strong><br>
+    <em>Listen</em>: <code>incoming-call</code></p>
+<pre><code>{
+  "callId": "call-uuid",
+  "from": "caller-user-uuid",
+  "title": "Optional Call Title"
+}</code></pre>
+
+    <hr>
+
+    <h3>Step 2: Answering or Declining</h3>
+
+    <p><strong>Accept the Call (Receiver)</strong><br>
+    <em>Emit</em>: <code>accept-call</code></p>
+<pre><code>{
+  "callId": "call-uuid",
+  "callerId": "caller-user-uuid"
+}</code></pre>
+
+    <p><strong>Call Active (Triggered to Caller when accepted)</strong><br>
+    <em>Listen</em>: <code>call-active</code></p>
+<pre><code>{
+  "callId": "call-uuid"
+}</code></pre>
+    <p><em>(Once this happens, both sides should begin the WebRTC negotiation below).</em></p>
+
+    <p><strong>Decline the Call (Receiver)</strong><br>
+    <em>Emit</em>: <code>decline-call</code></p>
+<pre><code>{
+  "callId": "call-uuid"
+}</code></pre>
+
+    <p><strong>Call Declined (Listen for decline)</strong><br>
+    <em>Listen</em>: <code>call-declined</code></p>
+<pre><code>{
+  "callId": "call-uuid"
+}</code></pre>
+
+    <hr>
+
+    <h3>Step 3: Ending the Call</h3>
+
+    <p><strong>End Call (By either side)</strong><br>
+    <em>Emit</em>: <code>end-call</code></p>
+<pre><code>{
+  "callId": "call-uuid",
+  "callerId": "caller-user-uuid",
+  "receiverId": "receiver-user-uuid"
+}</code></pre>
+
+    <p><strong>Call Ended Notification</strong><br>
+    <em>Listen</em>: <code>call-ended</code></p>
+<pre><code>{
+  "callId": "call-uuid"
+}</code></pre>
+
+    <hr>
+
+    <h3>Step 4: WebRTC Signaling (Peer-to-Peer Connection)</h3>
+    <p>For video/audio to actually work, device session descriptions (SDP) and ICE routes need to be exchanged. <code>roomId</code> is typically the <code>callId</code>.</p>
+
+    <p><strong>Send WebRTC Offer (Usually Caller)</strong><br>
+    <em>Emit</em>: <code>webrtc-offer</code></p>
+<pre><code>{
+  "roomId": "call-uuid",
+  "offer": { "type": "offer", "sdp": "v=0\r\no=-..." },
+  "receiverId": "receiver-user-uuid"
+}</code></pre>
+    <p><em>Receiver listens for <code>webrtc-offer</code> and applies the remote description.</em></p>
+
+    <p><strong>Send WebRTC Answer (Usually Receiver)</strong><br>
+    <em>Emit</em>: <code>webrtc-answer</code></p>
+<pre><code>{
+  "roomId": "call-uuid",
+  "answer": { "type": "answer", "sdp": "v=0\r\no=-..." },
+  "callerId": "caller-user-uuid"
+}</code></pre>
+    <p><em>Caller listens for <code>webrtc-answer</code> and applies the remote description.</em></p>
+
+    <p><strong>Send ICE Candidates (Both sides)</strong><br>
+    <em>Emit</em>: <code>ice-candidate</code></p>
+<pre><code>{
+  "roomId": "call-uuid",
+  "candidate": { "candidate": "...", "sdpMid": "0", "sdpMLineIndex": 0 },
+  "targetUserId": "other-user-uuid"
+}</code></pre>
+    <p><em>Devices use the <code>ice-candidate</code> listener to add ICE candidates to their local RTCPeerConnection.</em></p>
+
+</body>
+</html>

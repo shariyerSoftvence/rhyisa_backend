@@ -1,14 +1,14 @@
-import { Injectable, ConflictException, UnauthorizedException, InternalServerErrorException, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import { RedisService } from '../common/redis/redis.service';
+import { Injectable, ConflictException, UnauthorizedException, InternalServerErrorException, Logger, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import { PrismaService } from '../../prisma/prisma.service';
+import { RedisService } from '../../common/redis/redis.service';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
-import { MailService } from '../common/mail/mail.service';
+import { MailService } from '../../common/mail/mail.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { VerifyOtpDto, ForgotPasswordDto, VerifyForgotPasswordDto, ChangePasswordDto } from './dto/auth-extra.dto';
-import { OTPType } from '../../generated/prisma/enums';
+import { OTPType, UserStatus } from '../../../generated/prisma/enums';
 
 
 @Injectable()
@@ -41,6 +41,7 @@ export class AuthService {
           password: hashedPassword,
           fullName,
           role,
+          status: UserStatus.INACTIVE
         },
       });
 
@@ -69,7 +70,7 @@ export class AuthService {
 
       await this.prisma.auth.update({
         where: { id: user.id },
-        data: { isEmailVerified: true },
+        data: { isEmailVerified: true , status: UserStatus.ACTIVE},
       });
 
       return { message: 'Email verified successfully' };
@@ -79,6 +80,9 @@ export class AuthService {
       throw new InternalServerErrorException('Something went wrong during OTP verification');
     }
   }
+
+
+
 
   async login(loginDto: LoginDto) {
     try {
@@ -91,6 +95,19 @@ export class AuthService {
       if (!isPasswordValid) throw new UnauthorizedException('Invalid credentials');
 
       if (!user.isEmailVerified) throw new UnauthorizedException('Please verify your email first');
+
+      if (user.status !== UserStatus.ACTIVE) {
+      switch (user.status) {
+        case UserStatus.DELETED:
+          throw new UnauthorizedException('Your account has been deleted by the administrator.');
+
+        case UserStatus.BLOCKED:
+          throw new UnauthorizedException('Your account has been blocked. Please contact support.');
+
+        default:
+          throw new UnauthorizedException('Access denied due to invalid account status.');
+      }
+    }
 
       const tokens = await this.generateTokens(user.id, user.email, user.role);
 

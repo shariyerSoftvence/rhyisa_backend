@@ -1,0 +1,161 @@
+enum LiveChatType {
+  INDIVIDUAL
+  GROUP
+}
+
+enum LiveMessageStatus {
+  SENT
+  DELIVERED
+  READ
+}
+
+enum LiveMediaType {
+  IMAGE
+  VIDEO
+  AUDIO
+  DOCUMENT
+}
+
+model LiveChat {
+  id        String       @id @default(uuid())
+  type      LiveChatType @default(INDIVIDUAL)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  // Who created the chat (optional)
+  createdBy   Auth?   @relation("LiveChatCreator", fields: [createdById], references: [id])
+  createdById String?
+
+  // Relations
+  participants LiveChatParticipant[]
+  messages     LiveMessage[]
+  messageReads LiveMessageRead[]
+
+  @@index([createdById])
+  @@index([type])
+  @@map("live_chats")
+}
+
+model LiveChatParticipant {
+  id String @id @default(uuid())
+
+  // Chat this participant belongs to
+  chatId String
+  chat   LiveChat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+
+  // User participating in chat
+  userId String
+  user   Auth   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  joinedAt DateTime  @default(now())
+  leftAt   DateTime? // null = still active
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // One user per chat only
+  @@unique([chatId, userId])
+  @@index([chatId])
+  @@index([userId])
+  @@map("chat_participants")
+}
+
+model LiveMessage {
+  id String @id @default(uuid())
+
+  chatId String
+  chat   LiveChat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+
+  senderId String
+  sender   Auth   @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  content   String?        @db.Text
+  mediaUrl  String?
+  mediaType LiveMediaType?
+
+  status LiveMessageStatus @default(SENT)
+
+  readBy LiveMessageRead[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([chatId])
+  @@index([senderId])
+  @@index([createdAt])
+  @@map("live_messages")
+}
+
+model LiveMessageRead {
+  id String @id @default(uuid())
+
+  messageId String
+  message   LiveMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   Auth   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  readAt DateTime @default(now())
+
+  // Optional link back to chat (helps queries)
+  liveChat   LiveChat? @relation(fields: [liveChatId], references: [id])
+  liveChatId String?
+
+  @@unique([messageId, userId])
+  @@index([messageId])
+  @@index([userId])
+  @@index([liveChatId])
+  @@map("live_message_reads")
+}
+
+
+
+
+model Calling {
+  id              String     @id @default(uuid())
+  hostUserId      String
+  recipientUserId String?
+  status          CallStatus @default(CALLING)
+  title           String?
+  isPrivate       Boolean    @default(false)
+  startedAt       DateTime?
+  endedAt         DateTime?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  host         Auth              @relation("HostedCalls", fields: [hostUserId], references: [id])
+  recipient    Auth?             @relation("ReceivedCalls", fields: [recipientUserId], references: [id])
+  participants CallParticipant[]
+
+  @@index([hostUserId])
+  @@index([recipientUserId]) 
+  @@map("calls")
+}
+
+model CallParticipant {
+  id        String    @id @default(uuid())
+  callId    String
+  socketId  String
+  userName  String
+  hasVideo  Boolean   @default(false)
+  hasAudio  Boolean   @default(false)
+  joinedAt  DateTime  @default(now())
+  leftAt    DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  call Calling @relation(fields: [callId], references: [id], onDelete: Cascade)
+
+  @@index([callId])
+  @@index([socketId])
+  @@map("call_participants")
+}
+
+enum CallStatus {
+  CALLING
+  RINING
+  ACTIVE
+  END
+  MISSED
+  DECLINED
+}

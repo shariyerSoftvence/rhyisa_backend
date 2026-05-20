@@ -8,8 +8,17 @@ model Auth {
   password String
   email    String @unique
 
+  lastLoginAt     DateTime?
+  lastActiveAt    DateTime?
+
   firebaseUid String?   @unique
   loginType   LoginType @default(EMAIL)
+
+  status          UserStatus @default(ACTIVE)
+  isVerified      Boolean    @default(false)
+  isOnline        Boolean    @default(false)
+  isPhoneVerified Boolean    @default(false)
+  
 
   otps          OTP[]
   refreshTokens RefreshToken[]
@@ -18,13 +27,19 @@ model Auth {
 
   userProfile UserProfile?
 
-  conversationsAsOne Conversation[] @relation("ParticipantOne")
-  conversationsAsTwo Conversation[] @relation("ParticipantTwo")
-  messagesSent       Message[]      @relation("SentMessages")
-  notifications      Notification[] @relation("UserNotifications")
 
-  callsInitiated    VideoCall[]    @relation("VideoCallsInitiated")
-  callsReceived     VideoCall[]    @relation("VideoCallsReceived")
+  notifications UserNotification[]
+
+
+  hostedCalls   Calling[] @relation("HostedCalls")
+  receivedCalls Calling[] @relation("ReceivedCalls")
+
+
+  messages        LiveMessage[]
+  chatParticipant LiveChatParticipant[]
+  createdChats    LiveChat[]            @relation("LiveChatCreator")
+  messageReads    LiveMessageRead[]
+
 
   isEmailVerified Boolean @default(false)
 }
@@ -39,7 +54,6 @@ enum RoleType {
   USER
   PROVIDER
   ADMIN
-  INSURANCE
 }
 
 model RefreshToken {
@@ -81,4 +95,12 @@ enum OTPType {
   EMAIL_VERIFICATION
   FORGOT_PASSWORD
   LOGIN
+}
+
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  DELETED
+  BLOCKED
 }

@@ -1,5 +1,6 @@
 model InsuranceCompany {
   id           String  @id @default(uuid())
+  serial        Int    @default(autoincrement()) @unique
   name         String  @unique
   description  String? @db.Text
   externalLink String?

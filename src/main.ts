@@ -7,11 +7,25 @@ import * as express from 'express';
 import { ValidationPipe } from '@nestjs/common';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
+import { SeedService } from './common/seed/seedService';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     bodyParser: false,
   });
+
+
+  const seedService = app.get(SeedService);
+
+  try {
+    console.log('Starting data seeding processing...');
+    await seedService.seedSuperAdmin();
+    console.log('Seeding execution process finished.');
+  } catch (error) {
+    console.error('Seeding process failed with exception error:', error);
+  } finally {
+    await app.close();
+  }
 
   app.useStaticAssets(join(process.cwd(), 'public'));
 
