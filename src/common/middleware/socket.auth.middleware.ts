@@ -63,7 +63,7 @@ export class SocketAuthMiddleware {
         }
 
         // Verify JWT token
-        const jwtSecret = this.configService.get<string>(process.env.JWT_ACCESS_SECRET!);
+        const jwtSecret = this.configService.get<string>('JWT_ACCESS_SECRET') || process.env.JWT_ACCESS_SECRET;
         if (!jwtSecret) {
           this.logger.error('JWT_ACCESS_SECRET is not configured');
           return next(new Error(AuthSocketError.SERVER_CONFIG_ERROR));
@@ -92,7 +92,7 @@ export class SocketAuthMiddleware {
         }
 
         // Verify user exists in database
-        const user = await this.prisma.client.user.findUnique({
+        const user = await this.prisma.auth.findUnique({
           where: { id: userId },
           select: { id: true, email: true, role: true },
         });

@@ -7,7 +7,7 @@ import { ProviderStatus, RoleType, UserStatus } from '../../../../generated/pris
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 
 
-@ApiTags('User Management Systems (Admin Operations Portfolio)')
+@ApiTags('ADMIN User Management Systems (Admin Operations Portfolio)')
 @Controller('admin/user-management')
 @UseGuards(JwtAuthGuard ,RolesGuard)
 @Roles(RoleType.ADMIN)

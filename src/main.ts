@@ -60,7 +60,8 @@ async function bootstrap() {
       'http://localhost:3002',
       'http://localhost:5173',
       'http://localhost:5174',
-      'http://localhost:5174',
+      'http://localhost:5175',
+       
     ],
     credentials: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
@@ -69,7 +70,7 @@ async function bootstrap() {
 
   // ৪. Swagger
   const config = new DocumentBuilder()
-    .setTitle('ByBench Marketplace API')
+    .setTitle('Rhyisa project API docs!')
     .setDescription('The ByBench API description')
     .setVersion('1.0')
     .addBearerAuth()

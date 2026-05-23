@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, IsOptional, IsNumber, IsEnum, IsArray } from 'class-validator';
-import { BodyType, FatLevelRange, HealthCondition, ShortTermGoal, LongTermGoal } from '../../../../generated/prisma/enums';
+import { IsString, IsOptional, IsNumber, IsEnum, IsArray } from 'class-validator';
+import { FatLevelRange, HealthCondition, ShortTermGoal, LongTermGoal, BodyType } from '../../../../generated/prisma/client';
 
 export class UpdateUserProfileDto {
   @ApiPropertyOptional({ example: 'David William Updated' })
@@ -64,8 +64,6 @@ export class UpdateUserProfileDto {
   @IsOptional()
   mealDescription?: string;
 
-  @ApiPropertyOptional({ example: 'media-uuid-string' })
-  @IsString()
-  @IsOptional()
-  bodyPhotoId?: string;
+ @ApiProperty({ type: 'string', format: 'binary', description: 'Upload avatar user profile image' })
+  profileImage: any;
 }

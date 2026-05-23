@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Frontend Integration Guide: Private Chat WebSocket</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            font-size: 16px;
+            line-height: 1.5;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        pre, code {
+            background-color: #f4f4f4;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        pre {
+            padding: 16px;
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #f9f9f9;
+        }
+        h1, h2, h3 {
+            margin-top: 1.5em;
+        }
+        hr {
+            border: 0;
+            border-top: 1px solid #ccc;
+            margin: 2em 0;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Frontend Integration Guide: Private Chat WebSocket</h1>
+    <p>This document provides a simple, direct guide for app and frontend developers to integrate the Private Messaging WebSocket.</p>
+    
+    <p><strong>Namespace</strong>: <code>/chat</code> (Connect via this path)<br>
+    <strong>Authentication</strong>: Valid JWT Bearer token required in the connection handshake.</p>
+
+    <hr>
+
+    <h2>1. Connection Example</h2>
+    <p>Pass the token via the <code>auth</code> object (common in Socket.IO).</p>
+
+<pre><code>import { io } from 'socket.io-client';
+
+const socket = io('http://your-api-url/chat', {
+  auth: {
+    token: 'Bearer YOUR_JWT_TOKEN',
+  },
+});
+
+socket.on('connect', () => {
+  console.log('Connected to private chat!', socket.id);
+});
+
+socket.on('connect_error', (err) => {
+  console.error('Connection failed:', err.message);
+});</code></pre>
+
+    <hr>
+
+    <h2>2. Events Overview</h2>
+    <p>Here is the quick reference for all events you can send (Emit) and receive (Listen).</p>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Client Emit Event</th>
+                <th>Server Response / Listener</th>
+                <th>Input Payload (Type)</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><em>(on connect)</em></td>
+                <td><code>chat:conversation_list</code></td>
+                <td><em>None</em></td>
+                <td>Server auto-sends the user's latest conversation list.</td>
+            </tr>
+            <tr>
+                <td><code>chat:load_conversations</code></td>
+                <td><code>chat:conversation_list</code></td>
+                <td><code>none</code></td>
+                <td>Manually load all user conversations.</td>
+            </tr>
+            <tr>
+                <td><code>chat:load_single_conversation</code></td>
+                <td><code>chat:conversation_messages</code></td>
+                <td><code>{ chatId: UUID }</code></td>
+                <td>Load messages for a single specific chat.</td>
+            </tr>
+            <tr>
+                <td><code>chat:message_send</code></td>
+                <td><code>chat:message_sent</code> (to sender)<br><code>chat:message_receive</code> (to receiver)</td>
+                <td><code>{ receiverId: UUID, content?: string, mediaUrl?: URL, mediaType?: Enum }</code></td>
+                <td>Send a new private message to a user.</td>
+            </tr>
+            <tr>
+                <td><code>chat:message_read</code></td>
+                <td><code>chat:message_read</code> (to sender)</td>
+                <td><code>{ messageId: UUID }</code></td>
+                <td>Acknowledge that a message was read.</td>
+            </tr>
+            <tr>
+                <td><code>chat:typing_start</code></td>
+                <td><code>chat:typing_start</code> (to receiver)</td>
+                <td><code>{ chatId: UUID, receiverId: UUID }</code></td>
+                <td>Notify receiver that you started typing.</td>
+            </tr>
+            <tr>
+                <td><code>chat:typing_stop</code></td>
+                <td><code>chat:typing_stop</code> (to receiver)</td>
+                <td><code>{ chatId: UUID, receiverId: UUID }</code></td>
+                <td>Notify receiver that you stopped typing.</td>
+            </tr>
+            <tr>
+                <td><code>user:get_status</code></td>
+                <td><code>user:status</code> (to you)</td>
+                <td><code>{ userId: UUID }</code></td>
+                <td>Request the online/offline status of a user.</td>
+            </tr>
+            <tr>
+                <td><code>user:set_status</code></td>
+                <td><code>user:status_changed</code> (broadcast)</td>
+                <td><code>{ status: "online" | "away" | "offline" }</code></td>
+                <td>Manually set your active status bounds.</td>
+            </tr>
+            <tr>
+                <td><em>(on connect / disconnect)</em></td>
+                <td><code>user:status_changed</code></td>
+                <td><em>None</em></td>
+                <td>Automatically broadcasted to users when you connect/disconnect.</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <hr>
+
+    <h2>3. Payload Details &amp; Explanations</h2>
+
+    <h3>Loading Conversations &amp; Messages</h3>
+
+    <p><strong>Load All Conversations manually</strong><br>
+    <em>Emit</em>: <code>chat:load_conversations</code></p>
+<pre><code>{}</code></pre>
+
+    <p><strong>Conversation List Response (Also sent automatically on connect)</strong><br>
+    <em>Listen</em>: <code>chat:conversation_list</code></p>
+<pre><code>[
+  {
+    "id": "chat-uuid",
+    "type": "INDIVIDUAL",
+    "unreadCount": 0,
+    "lastMessage": {
+      "content": "Hello!"
+    }
+  }
+]</code></pre>
+
+    <p><strong>Load Single Conversation Messages</strong><br>
+    <em>Emit</em>: <code>chat:load_single_conversation</code></p>
+<pre><code>{
+  "chatId": "chat-uuid"
+}</code></pre>
+
+    <p><strong>Messages Response</strong><br>
+    <em>Listen</em>: <code>chat:conversation_messages</code></p>
+<pre><code>{
+  "chatId": "chat-uuid",
+  "messages": [
+    {
+      "id": "message-uuid",
+      "content": "Hello!",
+      "createdAt": "2026-05-06T10:00:00.000Z"
+    }
+  ]
+}</code></pre>
+
+    <hr>
+
+    <h3>Sending &amp; Receiving Messages</h3>
+
+    <p><strong>Send a Message</strong><br>
+    <em>Emit</em>: <code>chat:message_send</code></p>
+<pre><code>{
+  "receiverId": "550e8400-e29b-41d4-a716-446655440000",
+  "content": "Hello! How are you?",
+  "mediaUrl": "https://example.com/image.jpg",
+  "mediaType": "IMAGE"
+}</code></pre>
+    <p><em>(Note: Either <code>content</code> or <code>mediaUrl/mediaType</code> must be provided).</em></p>
+
+    <p><strong>Message Sent (Acknowledgement)</strong><br>
+    <em>Listen</em>: <code>chat:message_sent</code><br>
+    The server confirms your message is saved.</p>
+<pre><code>{
+  "id": "message-uuid",
+  "chatId": "chat-uuid",
+  "content": "Hello! How are you?",
+  "mediaUrl": null,
+  "mediaType": null,
+  "sender": { "id": "your-uuid", "name": "You", "profilePhoto": null },
+  "receiver": { "id": "receiver-uuid", "name": "Other User" },
+  "createdAt": "2026-05-06T10:00:00.000Z"
+}</code></pre>
+
+    <p><strong>Message Received (Incoming Message)</strong><br>
+    <em>Listen</em>: <code>chat:message_receive</code><br>
+    Triggered when another user sends you a message. The payload is identical to the <code>chat:message_sent</code> payload.</p>
+
+    <hr>
+
+    <h3>Read Receipts</h3>
+
+    <p><strong>Mark a Message as Read</strong><br>
+    <em>Emit</em>: <code>chat:message_read</code></p>
+<pre><code>{
+  "messageId": "message-uuid-you-read"
+}</code></pre>
+
+    <p><strong>Read Receipt Notification</strong><br>
+    <em>Listen</em>: <code>chat:message_read</code><br>
+    Indicates the other user read your message.</p>
+<pre><code>{
+  "messageId": "message-uuid-they-read",
+  "readBy": "reader-user-uuid",
+  "chatId": "chat-uuid"
+}</code></pre>
+
+    <hr>
+
+    <h3>Typing Indicators</h3>
+
+    <p><strong>Start / Stop Typing</strong><br>
+    <em>Emit</em>: <code>chat:typing_start</code> OR <code>chat:typing_stop</code></p>
+<pre><code>{
+  "chatId": "chat-uuid",
+  "receiverId": "receiver-uuid"
+}</code></pre>
+
+    <p><strong>User is Typing / Stopped Typing</strong><br>
+    <em>Listen</em>: <code>chat:typing_start</code> OR <code>chat:typing_stop</code></p>
+<pre><code>{
+  "userId": "typist-user-uuid",
+  "chatId": "chat-uuid"
+}</code></pre>
+
+    <hr>
+
+    <h3>User Status &amp; Presence</h3>
+
+    <p><strong>Get User Status</strong><br>
+    <em>Emit</em>: <code>user:get_status</code></p>
+<pre><code>{
+  "userId": "user-uuid"
+}</code></pre>
+
+    <p><strong>Status Response</strong><br>
+    <em>Listen</em>: <code>user:status</code></p>
+<pre><code>{
+  "userId": "user-uuid",
+  "status": "online",
+  "lastSeen": "2026-05-06T09:30:00.000Z"
+}</code></pre>
+
+    <p><strong>Global Status Changes</strong><br>
+    <em>Listen</em>: <code>user:status_changed</code><br>
+    Automatically triggered whenever any user connects, disconnects, or manually sets their status to away.</p>
+<pre><code>{
+  "userId": "user-uuid",
+  "status": "online", // offline, away
+  "timestamp": "2026-05-06T10:00:00.000Z"
+}</code></pre>
+
+</body>
+</html>

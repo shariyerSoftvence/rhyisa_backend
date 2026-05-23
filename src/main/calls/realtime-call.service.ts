@@ -1,9 +1,6 @@
-
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CallStatus } from '../../../generated/prisma/enums';
-
-
 
 @Injectable()
 export class RealTimeCallService {
@@ -14,7 +11,7 @@ export class RealTimeCallService {
     recipientUserId: string,
     title?: string,
   ) {
-    return this.prisma.client.calling.create({
+    return this.prisma.calling.create({
       data: {
         hostUserId,
         recipientUserId,
@@ -24,42 +21,42 @@ export class RealTimeCallService {
   }
 
   async markRinging(callId: string) {
-    return this.prisma.client.calling.update({
+    return this.prisma.calling.update({
       where: { id: callId },
       data: { status: CallStatus.RINING, startedAt: new Date() },
     });
   }
 
   async markActive(callId: string) {
-    return this.prisma.client.calling.update({
+    return this.prisma.calling.update({
       where: { id: callId },
       data: { status: CallStatus.ACTIVE, startedAt: new Date() },
     });
   }
 
   async markDeclined(callId: string) {
-    return this.prisma.client.calling.update({
+    return this.prisma.calling.update({
       where: { id: callId },
       data: { status: CallStatus.DECLINED, endedAt: new Date() },
     });
   }
 
   async markMissed(callId: string) {
-    return this.prisma.client.calling.update({
+    return this.prisma.calling.update({
       where: { id: callId },
       data: { status: CallStatus.MISSED, endedAt: new Date() },
     });
   }
 
   async endCall(callId: string) {
-    return this.prisma.client.calling.update({
+    return this.prisma.calling.update({
       where: { id: callId },
       data: { status: CallStatus.END, endedAt: new Date() },
     });
   }
 
   async getCallStatus(callId: string) {
-    const call = await this.prisma.client.calling.findUnique({
+    const call = await this.prisma.calling.findUnique({
       where: { id: callId },
       select: {
         id: true,

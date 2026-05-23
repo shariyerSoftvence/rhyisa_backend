@@ -12,21 +12,37 @@ import { InsuranceModule } from './main/admin/insurance/insurance.module';
 import { SeedService } from './common/seed/seedService';
 import { UserManagementModule } from './main/admin/user-management/user-management.module';
 import { UsersModule } from './main/users/users.module';
+import { PrivateMessageModule } from './main/chats/chats.module';
+import { ProviderSpecializationModule } from './main/admin/provider-specialization/provider-specialization.module';
+import { ProviderProfileModule } from './main/provider-profile/provider-profile.module';
+import { CommissionModule } from './main/admin/commission/commission.module';
+import { UploadFilesModule } from './common/upload-files/upload-files.module';
+import { StripeWebhooksModule } from './stripe-webhooks/stripe-webhooks.module';
+import { ProviderServiceManagementModule } from './main/provider-service-management/provider-service-management.module';
+import { TrackMealModule } from './main/track-meal/track-meal.module';
 
 
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    AuthModule,
+    CommissionModule,
+    InsuranceModule,
+    UserManagementModule,
+    ProviderSpecializationModule,
     RedisModule,
     PrismaModule,
-    AuthModule,
     MailModule,
     OpenaiModule,
     RealTimeCallModule,
-    InsuranceModule,
-    UserManagementModule,
-    UsersModule
+    UsersModule,
+    PrivateMessageModule,
+    ProviderProfileModule,
+    UploadFilesModule,
+    StripeWebhooksModule,
+    ProviderServiceManagementModule,
+    TrackMealModule
   ],
   controllers: [AppController],
   providers: [AppService, SeedService],

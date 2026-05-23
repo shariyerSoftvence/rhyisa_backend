@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsString, IsNotEmpty, IsNumber, IsEnum, IsArray } from 'class-validator';
 import { BodyType, FatLevelRange, HealthCondition, ShortTermGoal, LongTermGoal } from '../../../../generated/prisma/enums';
 
@@ -64,8 +64,6 @@ export class CreateUserProfileDto {
   @IsNotEmpty()
   mealDescription!: string;
 
-  @ApiProperty({ example: 'media-uuid-string', description: 'Media ID attachment reference for body photo validation' })
-  @IsString()
-  @IsNotEmpty()
-  bodyPhotoId!: string;
+ @ApiPropertyOptional({ type: 'string', format: 'binary' })
+  profileImage?: any;
 }

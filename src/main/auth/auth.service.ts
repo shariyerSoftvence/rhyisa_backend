@@ -218,28 +218,42 @@ export class AuthService {
     }
   }
 
-  async getMe(userId: string) {
-    try {
-      const user = await this.prisma.auth.findUnique({
-        where: { id: userId },
-        select: {
-          id: true,
-          email: true,
-          fullName: true,
-          role: true,
-          createdAt: true,
-          isEmailVerified: true,
+async getMe(userId: string) {
+  try {
+    const user = await this.prisma.auth.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        fullName: true,
+        role: true,
+        createdAt: true,
+        isEmailVerified: true,
+        providerProfile: {
+          include: {
+            profileImage: true, 
+            driverLicense: true,
+            certificate: true,
+            specialization: true,  
+            availabilities: true, 
+          },
         },
-      });
+        userProfile: {
+          include: {
+            profileImage: true,  
+          },
+        },
+      },
+    });
 
-      if (!user) throw new UnauthorizedException('User not found');
-      return user;
-    } catch (error: any) {
-      this.logger.error(`Get profile failed: ${error.message}`);
-      if (error instanceof UnauthorizedException) throw error;
-      throw new InternalServerErrorException('Something went wrong fetching profile');
-    }
+    if (!user) throw new UnauthorizedException('User not found');
+    return user;
+  } catch (error: any) {
+    this.logger.error(`Get profile failed: ${error.message}`);
+    if (error instanceof UnauthorizedException) throw error;
+    throw new InternalServerErrorException('Something went wrong fetching profile');
   }
+}
 
 async refreshToken(token: string) {
   try {
