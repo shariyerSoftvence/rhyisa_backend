@@ -1,69 +1,142 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, IsNumber, IsEnum, IsArray } from 'class-validator';
-import { BodyType, FatLevelRange, HealthCondition, ShortTermGoal, LongTermGoal } from '../../../../generated/prisma/enums';
+import { Transform } from 'class-transformer';
+import {
+  IsArray,
+  IsBoolean,
+  IsEnum,
+  IsInt,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
+} from 'class-validator';
+
+import {
+  CurrentActivityLevel,
+  CurrentDiet,
+  Gender,
+  PrimaryGoal,
+  SupplementType,
+} from '../../../../generated/prisma/enums';
 
 export class CreateUserProfileDto {
-  @ApiProperty({ example: 'David William', description: 'Full name of the user profile' })
+  @ApiProperty({
+    example: 'David William',
+  })
   @IsString()
-  @IsNotEmpty()
-  fullName!: string;
+  @IsOptional()
+  fullName?: string;
 
-  @ApiProperty({ example: '+1234567890', description: 'Contact number' })
+  @ApiPropertyOptional({
+    example: '+8801712345678',
+  })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  phoneNumber!: string;
+  phoneNumber?: string;
 
-  @ApiProperty({ example: '123 Health Ave, Dhaka', description: 'Home address' })
+  @ApiPropertyOptional({
+    example: 'Dhaka, Bangladesh',
+  })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  address!: string;
+  address?: string;
 
-  @ApiProperty({ example: 28, description: 'Age of the user' })
-  @IsNumber()
-  @IsNotEmpty()
+  @ApiProperty({
+    example: 25,
+  })
+  @IsInt()
+  @Min(1)
+  @Transform(({ value }) => parseInt(value, 10))
   age!: number;
 
-  @ApiProperty({ example: 5.9, description: 'Height in feet or centimeters' })
+  @ApiProperty({
+    enum: Gender,
+    example: Gender.MALE,
+  })
+  @IsEnum(Gender)
+  gender!: Gender;
+
+  @ApiProperty({
+    example: 175,
+    description: 'Height in CM',
+  })
   @IsNumber()
-  @IsNotEmpty()
+  @Transform(({ value }) => parseFloat(value))
   height!: number;
 
-  @ApiProperty({ example: 165.4, description: 'Weight in lbs or kg' })
+  @ApiProperty({
+    example: 168,
+    description: 'Weight in lbs',
+  })
   @IsNumber()
-  @IsNotEmpty()
+  @Transform(({ value }) => parseFloat(value))
   weight!: number;
 
-  @ApiProperty({ enum: BodyType, example: BodyType.MESOMORPH, description: 'Physical body archetype' })
-  @IsEnum(BodyType)
-  @IsNotEmpty()
-  bodyType!: BodyType;
+  @ApiProperty({
+    enum: CurrentActivityLevel,
+    example: CurrentActivityLevel.MODERATELY_ACTIVE,
+  })
+  @IsEnum(CurrentActivityLevel)
+  currentActivityLevel!: CurrentActivityLevel;
 
-  @ApiProperty({ enum: FatLevelRange, example: FatLevelRange.FITNESS, description: 'Estimated body fat tier' })
-  @IsEnum(FatLevelRange)
-  @IsNotEmpty()
-  averageFatLevel!: FatLevelRange;
+  @ApiProperty({
+    enum: CurrentDiet,
+    example: CurrentDiet.BALANCED,
+  })
+  @IsEnum(CurrentDiet)
+  currentDiet!: CurrentDiet;
 
-  @ApiProperty({ enum: HealthCondition, isArray: true, example: [HealthCondition.NONE], description: 'List of underlying medical issues' })
+  @ApiProperty({
+    enum: PrimaryGoal,
+    isArray: true,
+    example: [PrimaryGoal.BUILD_MUSCLE],
+  })
   @IsArray()
-  @IsEnum(HealthCondition, { each: true })
-  @IsNotEmpty()
-  healthConditions!: HealthCondition[];
+  @IsEnum(PrimaryGoal, { each: true })
+  @Transform(({ value }) => {
+    if (typeof value === 'string') return [value];
+    if (Array.isArray(value)) return value;
+    return [];
+  })
+  primaryGoal!: PrimaryGoal[];
 
-  @ApiProperty({ enum: ShortTermGoal, example: ShortTermGoal.LOSE_WEIGHT_QUICKLY, description: 'Target objective for upcoming weeks' })
-  @IsEnum(ShortTermGoal)
-  @IsNotEmpty()
-  shortTermGoal!: ShortTermGoal;
+  @ApiProperty({
+    example: 8,
+    minimum: 1,
+    maximum: 10,
+  })
+  @IsInt()
+  @Min(1)
+  @Max(10)
+  @Transform(({ value }) => parseInt(value, 10))
+  motivationLevel!: number;
 
-  @ApiProperty({ enum: LongTermGoal, example: LongTermGoal.SUSTAINABLE_WEIGHT_LOSS, description: 'Core long term health target' })
-  @IsEnum(LongTermGoal)
-  @IsNotEmpty()
-  longTermGoal!: LongTermGoal;
+  @ApiProperty({
+    example: false,
+  })
+  @IsBoolean()
+  @Transform(({ value }) => value === 'true' || value === true)
+  hasHealthCondition!: boolean;
 
-  @ApiProperty({ example: 'High protein diet, low carbs, 3 meals a day with green tea.', description: 'Details about user eating habits' })
-  @IsString()
-  @IsNotEmpty()
-  mealDescription!: string;
+  @ApiProperty({
+    enum: SupplementType,
+    isArray: true,
+    example: [SupplementType.CREATINE],
+  })
+  @IsArray()
+  @IsEnum(SupplementType, { each: true })
+  @Transform(({ value }) => {
+    if (typeof value === 'string') return [value];
+    if (Array.isArray(value)) return value;
+    return [];
+  })
+  supplements!: SupplementType[];
 
- @ApiPropertyOptional({ type: 'string', format: 'binary' })
+  @ApiPropertyOptional({
+    type: 'string',
+    format: 'binary',
+  })
   profileImage?: any;
 }

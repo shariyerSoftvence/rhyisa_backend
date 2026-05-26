@@ -1,3 +1,34 @@
+enum CurrentActivityLevel {
+  SEDENTARY 
+  LIGHT_ACTIVE
+  MODERATELY_ACTIVE
+  VERY_ACTIVE
+  EXTREMELY_ACTIVE
+}
+enum CurrentDiet {
+  STANDARD_DIET
+  BALANCED
+  HIGH_PROTEIN
+  LOW_CARD
+  PLAN_BASED
+}
+enum PrimaryGoal {
+  LOSE_WEIGHT
+  BUILD_MUSCLE
+  IMPROVE_HEALTH
+  IMPROVE_OVERALL_HEALTH
+  BETTER_SLEEP
+  MANAGE_STRESS
+  OTHERS
+}
+
+enum SupplementType {
+  NONE
+  MULTIVITAMIN
+  PROTEIN_SUPPLEMENT
+  CREATINE
+  OMEGA_3
+}
 model UserProfile {
   id          String  @id @default(uuid())
   fullName    String
@@ -6,14 +37,24 @@ model UserProfile {
 
   // Health Profile Fields
   age              Int?
+  gender         Gender?
   height           Float?
   weight           Float?
-  bodyType         BodyType?
-  averageFatLevel  FatLevelRange?
-  healthConditions HealthCondition[]
-  shortTermGoal    ShortTermGoal?
-  longTermGoal     LongTermGoal?
-  mealDescription  String
+
+  currentActivityLevel   CurrentActivityLevel?
+  currentDiet            CurrentDiet?
+  primaryGoal            PrimaryGoal[] @default([])
+
+  motivationLevel Int?
+  hasHealthCondition Boolean @default(false)
+  supplements SupplementType[] @default([])
+
+  // bodyType         BodyType?
+  // averageFatLevel  FatLevelRange?
+  // healthConditions HealthCondition[]
+  // shortTermGoal    ShortTermGoal?
+  // longTermGoal     LongTermGoal?
+  // mealDescription  String
 
   profileImageId String? @unique
   profileImage   Media?  @relation("UserProfileImage", fields: [profileImageId], references: [id])
@@ -26,7 +67,9 @@ model UserProfile {
   authId String @unique
   auth   Auth   @relation(fields: [authId], references: [id], onDelete: Cascade)
 
-  healthLogs       UserDailyHealthLog[]
+  healthGoal UserHealthGoal?
+
+   healthLogs UserDailyHealthLog[]
   dataAccessGrants ProviderDataAccess[]
 
   bookings Booking[]
@@ -36,19 +79,72 @@ model UserProfile {
   updatedAt DateTime @updatedAt
 }
 
+
+enum Gender {
+  MALE
+  FEMALE
+  PREFER_NOT_TO_SAY
+}
+
+
+
+model UserHealthGoal {
+  id String @id @default(uuid())
+
+  calorieGoal Int @default(2000)
+
+  waterGoal Int @default(8)
+
+  proteinGoal Int @default(120)
+
+  carbsGoal Int @default(250)
+
+  fatGoal Int @default(65)
+
+  stepsGoal Int @default(6000)
+
+  sleepGoalHours Int @default(8)
+
+  generatedByAI Boolean @default(true)
+
+  userProfileId String @unique
+
+  userProfile UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("user_health_goals")
+}
+
 model UserDailyHealthLog {
-  id   String   @id @default(uuid())
+  id String @id @default(uuid())
+
   date DateTime @default(now())
 
-  steps        Int @default(0)
-  stepsGoal    Int @default(6000)
-  sleepHours   Int
-  sleepMinutes Int
+  /**
+   * Daily Tracking Values
+   */
+
+  calories Int @default(0)
+
+  waterGlasses Int @default(0)
+
+  proteinGrams Int @default(0)
+
+  carbsGrams Int @default(0)
+
+  fatGrams Int @default(0)
+
+  steps Int @default(0)
+
+  sleepHours Int @default(0)
+
+  sleepMinutes Int @default(0)
 
   mood MoodType?
 
   energyLevel Int @default(1)
-  energyGoal  Int @default(5)
 
   stressLevel StressType?
 
@@ -56,33 +152,29 @@ model UserDailyHealthLog {
 
   cravings String?
 
-  // Metrics with Goals
-  calories    Int @default(0)
-  calorieGoal Int @default(2000)
+  /**
+   * Daily Score
+   */
 
-  waterGlasses Int @default(0)
-  waterGoal    Int @default(8)
-
-  proteinGrams Int @default(0)
-  proteinGoal  Int @default(120)
-
-  carbsGrams Int @default(0)
-  carbsGoal  Int @default(250)
-
-  fatGrams Int @default(0)
-  fatGoal  Int @default(65)
-
-  // Overall Score
   healthScore Int @default(0)
 
+  /**
+   * Relation
+   */
+
   userProfileId String
-  userProfile   UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+
+  userProfile UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([userProfileId, date])
+
   @@index([userProfileId])
+
   @@map("daily_health_logs")
 }
-
 enum MoodType {
   STEADY
   HAPPY
@@ -103,39 +195,39 @@ enum HungerType {
   HIGH
 }
 
-enum BodyType {
-  ECTOMORPH
-  MESOMORPH
-  ENDOMORPH
-  OTHER
-}
+// enum BodyType {
+//   ECTOMORPH
+//   MESOMORPH
+//   ENDOMORPH
+//   OTHER
+// }
 
 
-enum FatLevelRange {
-  ESSENTIAL 
-  ATHLETE
-  FITNESS 
-  ACCEPTABLE 
-  HIGH
-  OBESE 
-}
+// enum FatLevelRange {
+//   ESSENTIAL 
+//   ATHLETE
+//   FITNESS 
+//   ACCEPTABLE 
+//   HIGH
+//   OBESE 
+// }
 
 
-enum HealthCondition {
-  NONE
-  DIABETES_TYPE_1
-  DIABETES_TYPE_2
-  HYPERTENSION   
-  HYPOTENSION  
-  CARDIOVASCULAR  
-  ASTHMA_RESPIRATORY 
-  PREGNANCY
-  POST_PARTUM  
-  ARTHRITIS_JOINT_PAIN
-  KIDNEY_DISEASE
-  THYROID_DISORDER
-  CHRONIC_FATIGUE 
-}
+// enum HealthCondition {
+//   NONE
+//   DIABETES_TYPE_1
+//   DIABETES_TYPE_2
+//   HYPERTENSION   
+//   HYPOTENSION  
+//   CARDIOVASCULAR  
+//   ASTHMA_RESPIRATORY 
+//   PREGNANCY
+//   POST_PARTUM  
+//   ARTHRITIS_JOINT_PAIN
+//   KIDNEY_DISEASE
+//   THYROID_DISORDER
+//   CHRONIC_FATIGUE 
+// }
 
 enum SubscriptionType {
   FREE
@@ -143,22 +235,22 @@ enum SubscriptionType {
 }
 
 
-enum ShortTermGoal {
-  LOSE_WEIGHT_QUICKLY  
-  KICKSTART_METABOLISM 
-  DETOX_CLEANSE 
-  ADAPT_HEALTHY_EATING  
-  IMPROVE_DAILY_HYDRATION 
-  STAMINA_BOOST_WEEKLY 
-  REDUCE_SUGAR_CRAVING 
-}
+// enum ShortTermGoal {
+//   LOSE_WEIGHT_QUICKLY  
+//   KICKSTART_METABOLISM 
+//   DETOX_CLEANSE 
+//   ADAPT_HEALTHY_EATING  
+//   IMPROVE_DAILY_HYDRATION 
+//   STAMINA_BOOST_WEEKLY 
+//   REDUCE_SUGAR_CRAVING 
+// }
 
-enum LongTermGoal {
-  SUSTAINABLE_WEIGHT_LOSS 
-  MUSCLE_HYPERTROPHY  
-  REVERSE_DIABETES_PREDIABETES 
-  CARDIOVASCULAR_ENDURANCE 
-  ANTI_AGING_LONGEVITY      
-  STRESS_MANAGEMENT_MENTAL_CLARITY 
-  HOLISTIC_LIFESTYLE_TRANSFORMATION
-}
+// enum LongTermGoal {
+//   SUSTAINABLE_WEIGHT_LOSS 
+//   MUSCLE_HYPERTROPHY  
+//   REVERSE_DIABETES_PREDIABETES 
+//   CARDIOVASCULAR_ENDURANCE 
+//   ANTI_AGING_LONGEVITY      
+//   STRESS_MANAGEMENT_MENTAL_CLARITY 
+//   HOLISTIC_LIFESTYLE_TRANSFORMATION
+// }

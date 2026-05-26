@@ -220,6 +220,9 @@ export class AuthService {
 
 async getMe(userId: string) {
   try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
     const user = await this.prisma.auth.findUnique({
       where: { id: userId },
       select: {
@@ -241,6 +244,13 @@ async getMe(userId: string) {
         userProfile: {
           include: {
             profileImage: true,  
+            healthGoal: true,
+            healthLogs: {
+              where: {
+                date: today,
+              },
+              take: 1,
+            },
           },
         },
       },
