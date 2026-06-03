@@ -4,6 +4,6 @@ import { AdminCommissionController } from './commission.controller';
 
 @Module({
   providers: [AdminCommissionService],
-  controllers: [AdminCommissionController]
+  controllers: [AdminCommissionController],
 })
 export class CommissionModule {}

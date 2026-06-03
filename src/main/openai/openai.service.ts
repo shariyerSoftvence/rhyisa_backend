@@ -29,7 +29,9 @@ export class OpenaiService {
     } catch (error: any) {
       console.error(error);
       if (error?.status === 429) {
-        throw new BadRequestException('OpenAI quota exceeded. Please add billing.');
+        throw new BadRequestException(
+          'OpenAI quota exceeded. Please add billing.',
+        );
       }
       throw new InternalServerErrorException('Failed to convert voice to text');
     } finally {
@@ -69,9 +71,13 @@ export class OpenaiService {
     } catch (error: any) {
       console.error(error);
       if (error?.status === 429) {
-        throw new BadRequestException('OpenAI quota exceeded. Please add billing.');
+        throw new BadRequestException(
+          'OpenAI quota exceeded. Please add billing.',
+        );
       }
-      throw new InternalServerErrorException('Failed to extract text from image');
+      throw new InternalServerErrorException(
+        'Failed to extract text from image',
+      );
     } finally {
       this.deleteFile(filePath);
     }
@@ -84,19 +90,21 @@ export class OpenaiService {
   }
 
   async processTextToMealData(rawText: string): Promise<TrackMealResponse> {
-    try { 
+    try {
       const response = await this.openai.chat.completions.create({
         model: 'gpt-4o-mini',
         messages: [
           {
             role: 'system',
-            content: `You are an expert, board-certified clinical dietitian and food data extraction engine. 
-                  Your job is to analyze the food description provided by the user and convert it into structured macro-nutrient data.
-                  Follow these strict guidelines for accuracy:
-                  1. Estimate values based on standardized USDA food composition data.
-                  2. Ensure mathematical integrity: Total calories must accurately align with the extracted macronutrients using the standard Atwater factor formula: Calories = (Protein * 4) + (Carbs * 4) + (Fat * 9).
-                  3. Generate exactly 3-4 healthy meal recommendations related to or complementary to the tracked food under the "recommendations" array field. Provide accurate macro profiles for each recommendation.
-                  4. If the input is empty, completely nonsensical, or does not contain any reference to food or meals, set "isValidMeal" to false and return fallback/null values. Do not hallucinate data.`,
+            content: `You are an expert clinical dietitian and structured food data extraction engine. 
+                    Your job is to analyze the text meal description provided by the user and convert it into structured macro-nutrient metadata.
+                    Follow these strict rules:
+                    1. Detect all individual food items or distinct constituent dishes present within the textual description.
+                    2. For each individual item, populate an entry in the 'detectedMeals' collection indicating its name, estimated slice size/portion metric parameters, and direct macronutrient weight properties.
+                    3. Summate individual weights accurately to establish the metrics calculated within the core 'overall' object scope.
+                    4. Assign a qualitative 'nutritionQualityScore' scaling from 0 to 100 adhering to official global clinical health models.
+                    5. Synthesize a singular concise sentence 'nutritionSummary' tracking macro balances or highlighting fiber indicators.
+                    6. Maintain perfect mathematical truth rules: overall.totalCalories = (overall.totalProtein * 4) + (overall.totalCarbs * 4) + (overall.totalFat * 9).`,
           },
           {
             role: 'user',
@@ -106,66 +114,71 @@ export class OpenaiService {
         response_format: {
           type: 'json_schema',
           json_schema: {
-            name: 'professional_meal_analysis_schema',
+            name: 'multi_meal_text_analysis_schema',
             strict: true,
             schema: {
               type: 'object',
               properties: {
-                isValidMeal: { 
-                  type: 'boolean', 
-                  description: 'True if the input successfully describes an actual food item or recognizable meal, false otherwise.' 
+                isValidMeal: {
+                  type: 'boolean',
+                  description:
+                    'True if recognizable food contents are detected within input text parameters.',
                 },
-                mealName: { 
-                  type: 'string', 
-                  description: 'The standardized name of the dish or food item. If not a valid meal, return "Unknown/Invalid Input".' 
+                overall: {
+                  type: 'object',
+                  properties: {
+                    totalCalories: { type: 'number' },
+                    totalProtein: { type: 'number' },
+                    totalCarbs: { type: 'number' },
+                    totalFat: { type: 'number' },
+                  },
+                  required: [
+                    'totalCalories',
+                    'totalProtein',
+                    'totalCarbs',
+                    'totalFat',
+                  ],
+                  additionalProperties: false,
                 },
-                estimatedServing: { 
-                  type: 'string', 
-                  description: 'The estimated standard portion size, e.g., "1 bowl (approx 300g)", "1 medium piece". If invalid, return "N/A".' 
-                },
-                totalCalories: { 
-                  type: 'number', 
-                  description: 'Total calculated energy content in kcal. Must match macronutrient mathematical weights.' 
-                },
-                proteinInGrams: { 
-                  type: 'number', 
-                  description: 'Estimated protein content in grams.' 
-                },
-                carbsInGrams: { 
-                  type: 'number', 
-                  description: 'Estimated total carbohydrates content in grams.' 
-                },
-                fatInGrams: { 
-                  type: 'number', 
-                  description: 'Estimated total fats content in grams.' 
-                },
-                  recommendations: {
+                detectedMeals: {
                   type: 'array',
-                  description: 'A list of complementary or alternative healthy meal recommendations based on the current food profile.',
                   items: {
                     type: 'object',
                     properties: {
-                      name: { type: 'string', description: 'Name of the recommended food item, e.g., "Greek Yogurt Bowl".' },
-                      time: { type: 'string', description: 'Suggested generic time context or standard meal gap placeholder, e.g., "8:30 AM" or "Snack".' },
-                      calories: { type: 'number', description: 'Calories of the recommendation.' },
-                      protein: { type: 'number', description: 'Protein in grams.' },
-                      carbs: { type: 'number', description: 'Carbohydrates in grams.' },
-                      fat: { type: 'number', description: 'Fat in grams.' }
+                      name: { type: 'string' },
+                      estimatedServing: { type: 'string' },
+                      calories: { type: 'number' },
+                      protein: { type: 'number' },
+                      carbs: { type: 'number' },
+                      fat: { type: 'number' },
                     },
-                    required: ['name', 'time', 'calories', 'protein', 'carbs', 'fat'],
-                    additionalProperties: false
-                  }
-                }
+                    required: [
+                      'name',
+                      'estimatedServing',
+                      'calories',
+                      'protein',
+                      'carbs',
+                      'fat',
+                    ],
+                    additionalProperties: false,
+                  },
+                },
+                nutritionQualityScore: {
+                  type: 'number',
+                  description: 'A mathematical scale from 0 to 100.',
+                },
+                nutritionSummary: {
+                  type: 'string',
+                  description:
+                    'A short qualitative evaluation summary matching structural insights.',
+                },
               },
               required: [
                 'isValidMeal',
-                'mealName', 
-                'estimatedServing', 
-                'totalCalories', 
-                'proteinInGrams', 
-                'carbsInGrams', 
-                'fatInGrams',
-                'recommendations'
+                'overall',
+                'detectedMeals',
+                'nutritionQualityScore',
+                'nutritionSummary',
               ],
               additionalProperties: false,
             },
@@ -173,20 +186,144 @@ export class OpenaiService {
         },
       });
 
-      const parsedData = JSON.parse(response.choices[0].message.content || '{}');
-      return parsedData as TrackMealResponse;
+      return JSON.parse(
+        response.choices[0].message.content || '{}',
+      ) as TrackMealResponse;
     } catch (error: any) {
-      throw new InternalServerErrorException(`Failed to extract structured meal metrics: ${error.message}`);
+      throw new InternalServerErrorException(
+        `Failed to extract structured meal metrics from text: ${error.message}`,
+      );
     }
   }
 
+  async processImageToMealDataDirect(filePath: string): Promise<any> {
+    try {
+      const base64Image = fs.readFileSync(filePath).toString('base64');
 
-  async generateDailyHealthGoals(
-  payload: GenerateHealthGoalsPayload,
-) {
-  try {
-    const response =
-      await this.openai.chat.completions.create({
+      const response = await this.openai.chat.completions.create({
+        model: 'gpt-4o',
+        messages: [
+          {
+            role: 'system',
+            content: `You are an expert clinical dietitian and AI computer vision food analysis engine. 
+                    Your job is to analyze the user-provided meal image and extract structural macro-nutrient metadata.
+                    Follow these strict rules:
+                    1. Detect all individual food items or distinct constituent dishes present within the image frame workspace.
+                    2. For each individual item, populate an entry in the 'detectedMeals' collection indicating its name, estimated slice size/portion metric parameters, and direct macronutrient weight properties.
+                    3. Summate individual weights accurately to establish the metrics calculated within the core 'overall' object scope.
+                    4. Assign a qualitative 'nutritionQualityScore' scaling from 0 to 100 adhering to official global clinical health models.
+                    5. Synthesize a singular concise sentence 'nutritionSummary' tracking macro balances or highlighting fiber indicators.
+                    6. Maintain perfect mathematical truth rules: overall.totalCalories = (overall.totalProtein * 4) + (overall.totalCarbs * 4) + (overall.totalFat * 9).`,
+          },
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: 'Process this food composition asset image and return raw JSON data complying precisely with schema definitions.',
+              },
+              {
+                type: 'image_url',
+                image_url: {
+                  url: `data:image/jpeg;base64,${base64Image}`,
+                },
+              },
+            ],
+          },
+        ],
+        response_format: {
+          type: 'json_schema',
+          json_schema: {
+            name: 'multi_meal_vision_analysis_schema',
+            strict: true,
+            schema: {
+              type: 'object',
+              properties: {
+                isValidMeal: {
+                  type: 'boolean',
+                  description:
+                    'True if recognizable food contents are detected within image array pixels.',
+                },
+                overall: {
+                  type: 'object',
+                  properties: {
+                    totalCalories: { type: 'number' },
+                    totalProtein: { type: 'number' },
+                    totalCarbs: { type: 'number' },
+                    totalFat: { type: 'number' },
+                  },
+                  required: [
+                    'totalCalories',
+                    'totalProtein',
+                    'totalCarbs',
+                    'totalFat',
+                  ],
+                  additionalProperties: false,
+                },
+                detectedMeals: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      name: { type: 'string' },
+                      estimatedServing: { type: 'string' },
+                      calories: { type: 'number' },
+                      protein: { type: 'number' },
+                      carbs: { type: 'number' },
+                      fat: { type: 'number' },
+                    },
+                    required: [
+                      'name',
+                      'estimatedServing',
+                      'calories',
+                      'protein',
+                      'carbs',
+                      'fat',
+                    ],
+                    additionalProperties: false,
+                  },
+                },
+                nutritionQualityScore: {
+                  type: 'number',
+                  description: 'A mathematical scale from 0 to 100.',
+                },
+                nutritionSummary: {
+                  type: 'string',
+                  description:
+                    'A short qualitative evaluation summary matching structural insights.',
+                },
+              },
+              required: [
+                'isValidMeal',
+                'overall',
+                'detectedMeals',
+                'nutritionQualityScore',
+                'nutritionSummary',
+              ],
+              additionalProperties: false,
+            },
+          },
+        },
+      });
+
+      return JSON.parse(response.choices[0].message.content || '{}');
+    } catch (error: any) {
+      if (error?.status === 429) {
+        throw new BadRequestException(
+          'OpenAI quota exceeded. Please add billing.',
+        );
+      }
+      throw new InternalServerErrorException(
+        `Failed to process meal infrastructure image parsing pipeline: ${error.message}`,
+      );
+    } finally {
+      this.deleteFile(filePath);
+    }
+  }
+
+  async generateDailyHealthGoals(payload: GenerateHealthGoalsPayload) {
+    try {
+      const response = await this.openai.chat.completions.create({
         model: 'gpt-4o-mini',
 
         messages: [
@@ -275,13 +412,11 @@ export class OpenaiService {
         },
       });
 
-    return JSON.parse(
-      response.choices[0].message.content || '{}',
-    );
-  } catch (error: any) {
-    throw new InternalServerErrorException(
-      `Failed to generate AI health goals: ${error.message}`,
-    );
+      return JSON.parse(response.choices[0].message.content || '{}');
+    } catch (error: any) {
+      throw new InternalServerErrorException(
+        `Failed to generate AI health goals: ${error.message}`,
+      );
+    }
   }
-}
 }

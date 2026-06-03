@@ -1,6 +1,11 @@
-import { Injectable, InternalServerErrorException, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { CreateServiceDto, UpdateServiceDto } from './dot/service.dto';
+import { CreateServiceDto, UpdateServiceDto } from './dto/service.dto';
 
 @Injectable()
 export class ProviderServiceManagementService {
@@ -11,7 +16,9 @@ export class ProviderServiceManagementService {
       where: { authId },
     });
     if (!profile) {
-      throw new NotFoundException('Provider profile not initialized for this account');
+      throw new NotFoundException(
+        'Provider profile not initialized for this account',
+      );
     }
     return profile;
   }
@@ -30,7 +37,9 @@ export class ProviderServiceManagementService {
       });
     } catch (error) {
       if (error instanceof NotFoundException) throw error;
-      throw new InternalServerErrorException('Failed to build new operational service element log');
+      throw new InternalServerErrorException(
+        'Failed to build new operational service element log',
+      );
     }
   }
 
@@ -44,7 +53,9 @@ export class ProviderServiceManagementService {
       });
     } catch (error) {
       if (error instanceof NotFoundException) throw error;
-      throw new InternalServerErrorException('Failed to pull system data rows matching active criteria');
+      throw new InternalServerErrorException(
+        'Failed to pull system data rows matching active criteria',
+      );
     }
   }
 
@@ -57,26 +68,36 @@ export class ProviderServiceManagementService {
       });
 
       if (!service || service.providerProfileId !== profile.id) {
-        throw new NotFoundException('Target service mapping metadata parameter context missing');
+        throw new NotFoundException(
+          'Target service mapping metadata parameter context missing',
+        );
       }
 
       return service;
     } catch (error) {
       if (error instanceof NotFoundException) throw error;
-      throw new InternalServerErrorException('Failed to process data block recovery routine');
+      throw new InternalServerErrorException(
+        'Failed to process data block recovery routine',
+      );
     }
   }
 
-  async updateProviderServices(authId: string, serviceId: string, dto: UpdateServiceDto) {
+  async updateProviderServices(
+    authId: string,
+    serviceId: string,
+    dto: UpdateServiceDto,
+  ) {
     try {
       const profile = await this.getProviderProfileOrThrow(authId);
-      
+
       const service = await this.prisma.service.findUnique({
         where: { id: serviceId },
       });
 
       if (!service || service.providerProfileId !== profile.id) {
-        throw new NotFoundException('Service record not found or ownership mismatch detected');
+        throw new NotFoundException(
+          'Service record not found or ownership mismatch detected',
+        );
       }
 
       return await this.prisma.service.update({
@@ -85,7 +106,9 @@ export class ProviderServiceManagementService {
       });
     } catch (error) {
       if (error instanceof NotFoundException) throw error;
-      throw new InternalServerErrorException('Failed to modify properties indices variables on data layer');
+      throw new InternalServerErrorException(
+        'Failed to modify properties indices variables on data layer',
+      );
     }
   }
 
@@ -98,17 +121,24 @@ export class ProviderServiceManagementService {
       });
 
       if (!service || service.providerProfileId !== profile.id) {
-        throw new NotFoundException('Specified portfolio entry does not exist under your credential scope');
+        throw new NotFoundException(
+          'Specified portfolio entry does not exist under your credential scope',
+        );
       }
 
       await this.prisma.service.delete({
         where: { id: serviceId },
       });
 
-      return { message: 'Operational service catalog entry removed clean from system registry data' };
+      return {
+        message:
+          'Operational service catalog entry removed clean from system registry data',
+      };
     } catch (error) {
       if (error instanceof NotFoundException) throw error;
-      throw new InternalServerErrorException('Failed to execute atomic deletion routine sequence');
+      throw new InternalServerErrorException(
+        'Failed to execute atomic deletion routine sequence',
+      );
     }
   }
 }

@@ -1,14 +1,19 @@
-
-
-import { Injectable, InternalServerErrorException, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { CreateSpecializationDto, UpdateSpecializationDto } from './dto/create-specialization.dto';
+import {
+  CreateSpecializationDto,
+  UpdateSpecializationDto,
+} from './dto/create-specialization.dto';
 import { RedisService } from '../../../common/redis/redis.service';
-
 
 @Injectable()
 export class ProviderSpecializationService {
-  private readonly CACHE_TTL = 300; 
+  private readonly CACHE_TTL = 300;
   private readonly LIST_CACHE_PREFIX = 'specializations:list:';
   private readonly SINGLE_CACHE_PREFIX = 'specialization:id:';
 
@@ -31,7 +36,9 @@ export class ProviderSpecializationService {
         where: { name: dto.name },
       });
       if (existing) {
-        throw new ConflictException('Specialization with this name already exists');
+        throw new ConflictException(
+          'Specialization with this name already exists',
+        );
       }
 
       const newSpecialization = await this.prisma.specialization.create({
@@ -46,7 +53,9 @@ export class ProviderSpecializationService {
       return newSpecialization;
     } catch (error) {
       if (error instanceof ConflictException) throw error;
-      throw new InternalServerErrorException('Failed to build unique specialization matrix profile entry');
+      throw new InternalServerErrorException(
+        'Failed to build unique specialization matrix profile entry',
+      );
     }
   }
 
@@ -79,7 +88,9 @@ export class ProviderSpecializationService {
       await this.redis.set(cacheKey, response, this.CACHE_TTL);
       return response;
     } catch (error) {
-      throw new InternalServerErrorException('Failed to fetch specializations list structural metrics');
+      throw new InternalServerErrorException(
+        'Failed to fetch specializations list structural metrics',
+      );
     }
   }
 
@@ -93,14 +104,18 @@ export class ProviderSpecializationService {
         where: { id },
       });
       if (!specialization) {
-        throw new NotFoundException(`Specialization matching identity data entry for ID ${id} was not located`);
+        throw new NotFoundException(
+          `Specialization matching identity data entry for ID ${id} was not located`,
+        );
       }
 
       await this.redis.set(cacheKey, specialization, this.CACHE_TTL);
       return specialization;
     } catch (error) {
       if (error instanceof NotFoundException) throw error;
-      throw new InternalServerErrorException('Failed to recover specialization entity properties details');
+      throw new InternalServerErrorException(
+        'Failed to recover specialization entity properties details',
+      );
     }
   }
 
@@ -110,7 +125,9 @@ export class ProviderSpecializationService {
         where: { id },
       });
       if (!existing) {
-        throw new NotFoundException(`Specialization containing reference metadata for ID ${id} not found`);
+        throw new NotFoundException(
+          `Specialization containing reference metadata for ID ${id} not found`,
+        );
       }
 
       if (dto.name && dto.name !== existing.name) {
@@ -118,7 +135,9 @@ export class ProviderSpecializationService {
           where: { name: dto.name },
         });
         if (nameConflict) {
-          throw new ConflictException('Specialization with this name alternative match option already exists');
+          throw new ConflictException(
+            'Specialization with this name alternative match option already exists',
+          );
         }
       }
 
@@ -132,8 +151,14 @@ export class ProviderSpecializationService {
 
       return updatedSpecialization;
     } catch (error) {
-      if (error instanceof NotFoundException || error instanceof ConflictException) throw error;
-      throw new InternalServerErrorException('Failed to execute parameters values modifications on specialization logs');
+      if (
+        error instanceof NotFoundException ||
+        error instanceof ConflictException
+      )
+        throw error;
+      throw new InternalServerErrorException(
+        'Failed to execute parameters values modifications on specialization logs',
+      );
     }
   }
 
@@ -143,7 +168,9 @@ export class ProviderSpecializationService {
         where: { id },
       });
       if (!existing) {
-        throw new NotFoundException(`Specialization reference metrics matching ID ${id} not found inside cluster logs`);
+        throw new NotFoundException(
+          `Specialization reference metrics matching ID ${id} not found inside cluster logs`,
+        );
       }
 
       await this.prisma.specialization.delete({
@@ -153,10 +180,15 @@ export class ProviderSpecializationService {
       await this.redis.del(`${this.SINGLE_CACHE_PREFIX}${id}`);
       await this.clearListCaches();
 
-      return { message: 'Specialization entry successfully eliminated from storage repository database mapping logs' };
+      return {
+        message:
+          'Specialization entry successfully eliminated from storage repository database mapping logs',
+      };
     } catch (error) {
       if (error instanceof NotFoundException) throw error;
-      throw new InternalServerErrorException('Failed to perform destructive structural removal sequence on specialization reference target');
+      throw new InternalServerErrorException(
+        'Failed to perform destructive structural removal sequence on specialization reference target',
+      );
     }
   }
 }

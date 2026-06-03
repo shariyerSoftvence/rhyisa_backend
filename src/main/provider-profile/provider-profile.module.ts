@@ -6,6 +6,6 @@ import { UploadFilesModule } from '../../common/upload-files/upload-files.module
 @Module({
   controllers: [ProviderProfileController],
   providers: [ProviderProfileService],
-    imports: [UploadFilesModule],
+  imports: [UploadFilesModule],
 })
 export class ProviderProfileModule {}

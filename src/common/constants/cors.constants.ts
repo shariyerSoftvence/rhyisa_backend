@@ -9,12 +9,6 @@ export const ALLOWED_ORIGINS = [
   'http://localhost:3002',
   'http://localhost:5173',
   'http://localhost:5174',
-  // Production domains
-  'https://smart-solutions-server-sv.saikat.com.bd',
-  'https://smart-solutions-sv.saikat.com.bd',
-  // Without https (in case)
-  'http://smart-solutions-server-sv.saikat.com.bd',
-  'http://smart-solutions-sv.saikat.com.bd',
 ];
 
 // Pattern to match allowed origins (for more flexible matching)

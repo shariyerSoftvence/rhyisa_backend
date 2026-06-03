@@ -33,10 +33,7 @@ export class SocketAuthMiddleware {
     private readonly prisma: PrismaService,
   ) {}
 
-  /**
-   * Socket.IO middleware for JWT authentication
-   * This runs before the connection is established
-   */
+
   use() {
     return async (socket: Socket, next: (err?: Error) => void) => {
       try {

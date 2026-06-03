@@ -9,8 +9,11 @@ model Media {
 
   // Back relations for ProviderProfile
   providerAsAvatar      ProviderProfile? @relation("ProfileImage")
+  ProviderAsGovernmentIssueId      ProviderProfile? @relation("governmentIssueId")
   providerAsLicense     ProviderProfile? @relation("DriverLicense")
-  providerAsCertificate ProviderProfile? @relation("Certificate")
+  providerAsCertificate  ProviderProfile? @relation("Certificate")
+   ProviderAsMarketplaceInsurance   ProviderProfile? @relation("marketplaceInsurance")
+  ProviderAsAdditionalCertificate   ProviderProfile? @relation("additionalCertificate")
 
   // Back relation for UserProfile
   userAsProfileImage UserProfile? @relation("UserProfileImage")

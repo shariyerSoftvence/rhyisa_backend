@@ -1,4 +1,9 @@
-import { Injectable, InternalServerErrorException, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { UpdateCommissionDto } from './dto/commission.dto';
 import { CommissionType } from '../../../../generated/prisma/enums';
 import { PrismaService } from '../../../prisma/prisma.service';
@@ -11,7 +16,9 @@ export class AdminCommissionService {
     try {
       const existing = await this.prisma.commission.findFirst();
       if (existing) {
-        throw new ConflictException('Global commission configuration is already initialized. Use update instead.');
+        throw new ConflictException(
+          'Global commission configuration is already initialized. Use update instead.',
+        );
       }
 
       return await this.prisma.commission.create({
@@ -22,7 +29,9 @@ export class AdminCommissionService {
       });
     } catch (error) {
       if (error instanceof ConflictException) throw error;
-      throw new InternalServerErrorException('Failed to create global commission record');
+      throw new InternalServerErrorException(
+        'Failed to create global commission record',
+      );
     }
   }
 
@@ -39,7 +48,9 @@ export class AdminCommissionService {
 
       return commission;
     } catch (error) {
-      throw new InternalServerErrorException('Failed to retrieve global commission data');
+      throw new InternalServerErrorException(
+        'Failed to retrieve global commission data',
+      );
     }
   }
 
@@ -48,7 +59,9 @@ export class AdminCommissionService {
       const existing = await this.prisma.commission.findFirst();
 
       if (!existing) {
-        throw new NotFoundException('No commission configuration found to update. Create one first.');
+        throw new NotFoundException(
+          'No commission configuration found to update. Create one first.',
+        );
       }
 
       return await this.prisma.commission.update({
@@ -60,7 +73,9 @@ export class AdminCommissionService {
       });
     } catch (error) {
       if (error instanceof NotFoundException) throw error;
-      throw new InternalServerErrorException('Failed to update global commission settings');
+      throw new InternalServerErrorException(
+        'Failed to update global commission settings',
+      );
     }
   }
 }

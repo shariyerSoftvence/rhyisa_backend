@@ -1,4 +1,8 @@
-import { Injectable, InternalServerErrorException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  BadRequestException,
+} from '@nestjs/common';
 import { OpenaiService } from '../openai/openai.service';
 import { TrackMealTextDto } from './dto/track-meal.dto';
 
@@ -9,9 +13,11 @@ export class TrackMealService {
   async trackFromText(dto: TrackMealTextDto) {
     try {
       const mealData = await this.openaiService.processTextToMealData(dto.text);
-      
+
       if (!mealData.isValidMeal) {
-        throw new BadRequestException('The provided text could not be recognized as a valid meal item');
+        throw new BadRequestException(
+          'The provided text could not be recognized as a valid meal item',
+        );
       }
 
       return {
@@ -20,7 +26,9 @@ export class TrackMealService {
       };
     } catch (error: any) {
       if (error instanceof BadRequestException) throw error;
-      throw new InternalServerErrorException(`Failed to track meal from text: ${error.message}`);
+      throw new InternalServerErrorException(
+        `Failed to track meal from text: ${error.message}`,
+      );
     }
   }
 
@@ -30,14 +38,16 @@ export class TrackMealService {
     }
 
     try {
-      // Step 1: Convert audio to raw text transcription
       const transcriptionResult = await this.openaiService.voiceToText(filePath);
-      
-      // Step 2: Extract professional nutrition metrics from transcription string
-      const mealData = await this.openaiService.processTextToMealData(transcriptionResult.text);
+
+      const mealData = await this.openaiService.processTextToMealData(
+        transcriptionResult.text,
+      );
 
       if (!mealData.isValidMeal) {
-        throw new BadRequestException('The transcribed audio description could not be recognized as a valid food item');
+        throw new BadRequestException(
+          'The transcribed audio description could not be recognized as a valid food item',
+        );
       }
 
       return {
@@ -46,7 +56,9 @@ export class TrackMealService {
       };
     } catch (error: any) {
       if (error instanceof BadRequestException) throw error;
-      throw new InternalServerErrorException(`Failed to track meal from voice configuration: ${error.message}`);
+      throw new InternalServerErrorException(
+        `Failed to track meal from voice configuration: ${error.message}`,
+      );
     }
   }
 
@@ -56,14 +68,12 @@ export class TrackMealService {
     }
 
     try {
-      // Step 1: Pass image to GPT to analyze and output food details text description
-      const descriptionResult = await this.openaiService.imageToText(filePath);
-      
-      // Step 2: Pipeline that detailed description to get strict nutrition object schema
-      const mealData = await this.openaiService.processTextToMealData(descriptionResult.text);
+      const mealData = await this.openaiService.processImageToMealDataDirect(filePath);
 
       if (!mealData.isValidMeal) {
-        throw new BadRequestException('The uploaded food image could not be verified or recognized');
+        throw new BadRequestException(
+          'The uploaded food image could not be verified or recognized',
+        );
       }
 
       return {
@@ -72,7 +82,9 @@ export class TrackMealService {
       };
     } catch (error: any) {
       if (error instanceof BadRequestException) throw error;
-      throw new InternalServerErrorException(`Failed to track meal from image recognition: ${error.message}`);
+      throw new InternalServerErrorException(
+        `Failed to track meal from image recognition: ${error.message}`,
+      );
     }
   }
 }

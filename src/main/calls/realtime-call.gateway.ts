@@ -61,7 +61,6 @@ export class RealTimeCallGateway
     }
   }
 
-  // Call event
 
   @SubscribeMessage('start-call')
   async startCall(

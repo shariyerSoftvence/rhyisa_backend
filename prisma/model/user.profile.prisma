@@ -49,13 +49,6 @@ model UserProfile {
   hasHealthCondition Boolean @default(false)
   supplements SupplementType[] @default([])
 
-  // bodyType         BodyType?
-  // averageFatLevel  FatLevelRange?
-  // healthConditions HealthCondition[]
-  // shortTermGoal    ShortTermGoal?
-  // longTermGoal     LongTermGoal?
-  // mealDescription  String
-
   profileImageId String? @unique
   profileImage   Media?  @relation("UserProfileImage", fields: [profileImageId], references: [id])
 
@@ -122,9 +115,6 @@ model UserDailyHealthLog {
 
   date DateTime @default(now())
 
-  /**
-   * Daily Tracking Values
-   */
 
   calories Int @default(0)
 
@@ -152,15 +142,9 @@ model UserDailyHealthLog {
 
   cravings String?
 
-  /**
-   * Daily Score
-   */
 
   healthScore Int @default(0)
 
-  /**
-   * Relation
-   */
 
   userProfileId String
 
@@ -195,62 +179,10 @@ enum HungerType {
   HIGH
 }
 
-// enum BodyType {
-//   ECTOMORPH
-//   MESOMORPH
-//   ENDOMORPH
-//   OTHER
-// }
 
-
-// enum FatLevelRange {
-//   ESSENTIAL 
-//   ATHLETE
-//   FITNESS 
-//   ACCEPTABLE 
-//   HIGH
-//   OBESE 
-// }
-
-
-// enum HealthCondition {
-//   NONE
-//   DIABETES_TYPE_1
-//   DIABETES_TYPE_2
-//   HYPERTENSION   
-//   HYPOTENSION  
-//   CARDIOVASCULAR  
-//   ASTHMA_RESPIRATORY 
-//   PREGNANCY
-//   POST_PARTUM  
-//   ARTHRITIS_JOINT_PAIN
-//   KIDNEY_DISEASE
-//   THYROID_DISORDER
-//   CHRONIC_FATIGUE 
-// }
 
 enum SubscriptionType {
   FREE
   PREMIUM
 }
 
-
-// enum ShortTermGoal {
-//   LOSE_WEIGHT_QUICKLY  
-//   KICKSTART_METABOLISM 
-//   DETOX_CLEANSE 
-//   ADAPT_HEALTHY_EATING  
-//   IMPROVE_DAILY_HYDRATION 
-//   STAMINA_BOOST_WEEKLY 
-//   REDUCE_SUGAR_CRAVING 
-// }
-
-// enum LongTermGoal {
-//   SUSTAINABLE_WEIGHT_LOSS 
-//   MUSCLE_HYPERTROPHY  
-//   REVERSE_DIABETES_PREDIABETES 
-//   CARDIOVASCULAR_ENDURANCE 
-//   ANTI_AGING_LONGEVITY      
-//   STRESS_MANAGEMENT_MENTAL_CLARITY 
-//   HOLISTIC_LIFESTYLE_TRANSFORMATION
-// }

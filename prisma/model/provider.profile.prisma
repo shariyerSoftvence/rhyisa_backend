@@ -13,6 +13,15 @@ model ProviderProfile {
   certificateId String? @unique
   certificate   Media?  @relation("Certificate", fields: [certificateId], references: [id])
 
+  governmentIssueIdUID String? @unique
+  governmentIssueId Media?  @relation("governmentIssueId", fields: [governmentIssueIdUID], references: [id])
+
+  marketplaceInsuranceId  String? @unique
+  marketplaceInsurance   Media?  @relation("marketplaceInsurance", fields: [marketplaceInsuranceId], references: [id])
+
+  additionalCertificateId   String? @unique
+  additionalCertificate    Media?  @relation("additionalCertificate", fields: [additionalCertificateId], references: [id])
+
   specializationId String?
   specialization   Specialization? @relation(fields: [specializationId], references: [id])
 

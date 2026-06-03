@@ -1,4 +1,11 @@
-import { Controller, Post, Body, UploadedFile, UseInterceptors, BadRequestException } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  UploadedFile,
+  UseInterceptors,
+  BadRequestException,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiConsumes, ApiBody } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { TrackMealService } from './track-meal.service';
@@ -16,7 +23,10 @@ export class TrackMealController {
   }
 
   @Post('voice')
-  @ApiOperation({ summary: 'Transcribe and compute meal metrics out from recorded audio files' })
+  @ApiOperation({
+    summary:
+      'Transcribe and compute meal metrics out from recorded audio files',
+  })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
@@ -28,12 +38,17 @@ export class TrackMealController {
   })
   @UseInterceptors(FileInterceptor('audio', { dest: './uploads' }))
   async fromVoice(@UploadedFile() file: Express.Multer.File) {
-    if (!file) throw new BadRequestException('Audio clip asset missing from body payload');
+    if (!file)
+      throw new BadRequestException(
+        'Audio clip asset missing from body payload',
+      );
     return this.trackMealService.trackFromVoice(file.path);
   }
 
   @Post('image')
-  @ApiOperation({ summary: 'Run computer vision extraction on captured food image plates' })
+  @ApiOperation({
+    summary: 'Run computer vision extraction on captured food image plates',
+  })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
@@ -45,7 +60,10 @@ export class TrackMealController {
   })
   @UseInterceptors(FileInterceptor('image', { dest: './uploads' }))
   async fromImage(@UploadedFile() file: Express.Multer.File) {
-    if (!file) throw new BadRequestException('Image visual reference missing from body payload');
+    if (!file)
+      throw new BadRequestException(
+        'Image visual reference missing from body payload',
+      );
     return this.trackMealService.trackFromImage(file.path);
   }
 }

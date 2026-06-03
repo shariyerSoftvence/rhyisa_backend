@@ -8,21 +8,14 @@ import {
 
 import { FileInterceptor } from '@nestjs/platform-express';
 
-import {
-  ApiBody,
-  ApiConsumes,
-  ApiOperation,
-  ApiTags,
-} from '@nestjs/swagger';
+import { ApiBody, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { OpenaiService } from './openai.service';
 
 @ApiTags('OpenAI')
 @Controller('openai')
 export class OpenaiController {
-  constructor(
-    private readonly openaiService: OpenaiService,
-  ) {}
+  constructor(private readonly openaiService: OpenaiService) {}
 
   @Post('voice-to-text')
   @ApiOperation({
@@ -50,14 +43,10 @@ export class OpenaiController {
     file: Express.Multer.File,
   ) {
     if (!file) {
-      throw new BadRequestException(
-        'Audio file is required',
-      );
+      throw new BadRequestException('Audio file is required');
     }
 
-    return this.openaiService.voiceToText(
-      file.path,
-    );
+    return this.openaiService.voiceToText(file.path);
   }
 
   @Post('image-to-text')
@@ -86,13 +75,9 @@ export class OpenaiController {
     file: Express.Multer.File,
   ) {
     if (!file) {
-      throw new BadRequestException(
-        'Image file is required',
-      );
+      throw new BadRequestException('Image file is required');
     }
 
-    return this.openaiService.imageToText(
-      file.path,
-    );
+    return this.openaiService.imageToText(file.path);
   }
 }

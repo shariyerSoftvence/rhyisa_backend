@@ -4,6 +4,6 @@ import { ProviderServiceManagementController } from './provider-service-manageme
 
 @Module({
   providers: [ProviderServiceManagementService],
-  controllers: [ProviderServiceManagementController]
+  controllers: [ProviderServiceManagementController],
 })
 export class ProviderServiceManagementModule {}

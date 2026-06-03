@@ -20,6 +20,9 @@ import { UploadFilesModule } from './common/upload-files/upload-files.module';
 import { StripeWebhooksModule } from './stripe-webhooks/stripe-webhooks.module';
 import { ProviderServiceManagementModule } from './main/provider-service-management/provider-service-management.module';
 import { TrackMealModule } from './main/track-meal/track-meal.module';
+import { ClientProviderDirectoryModule } from './main/client-provider-directory/client-provider-directory.module';
+import { ClientBookingModule } from './main/client-booking/client-booking.module';
+import { FeedbackReviewsModule } from './main/feedback-reviews/feedback-reviews.module';
 
 
 
@@ -42,7 +45,10 @@ import { TrackMealModule } from './main/track-meal/track-meal.module';
     UploadFilesModule,
     StripeWebhooksModule,
     ProviderServiceManagementModule,
-    TrackMealModule
+    TrackMealModule,
+    ClientProviderDirectoryModule,
+    ClientBookingModule,
+    FeedbackReviewsModule
   ],
   controllers: [AppController],
   providers: [AppService, SeedService],

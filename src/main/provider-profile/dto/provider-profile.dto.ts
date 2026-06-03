@@ -1,9 +1,16 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, IsOptional, IsEnum, IsArray, IsBoolean, IsObject, ValidateNested } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  IsEnum,
+  IsArray,
+  IsBoolean,
+  IsObject,
+  ValidateNested,
+} from 'class-validator';
 import { DayOfWeek } from '../../../../generated/prisma/enums';
 import { Type } from 'class-transformer';
-
-
 
 export class CreateProviderProfileDto {
   @ApiProperty({ example: 'Dhaka, Bangladesh' })
@@ -11,7 +18,10 @@ export class CreateProviderProfileDto {
   @IsNotEmpty()
   location!: string;
 
-  @ApiProperty({ example: 'Experienced certified physiotherapist specializing in sports recovery.' })
+  @ApiProperty({
+    example:
+      'Experienced certified physiotherapist specializing in sports recovery.',
+  })
   @IsString()
   @IsNotEmpty()
   description!: string;
@@ -24,6 +34,15 @@ export class CreateProviderProfileDto {
 
   @ApiProperty({ type: 'string', format: 'binary' })
   certificate: any;
+
+  @ApiProperty({ type: 'string', format: 'binary' })
+  governmentIssueId: any;
+
+  @ApiProperty({ type: 'string', format: 'binary' })
+  marketplaceInsurance: any;
+
+  @ApiProperty({ type: 'string', format: 'binary' })
+  additionalCertificate: any;
 
   @ApiProperty({ example: 'specialization-uuid-string' })
   @IsString()
@@ -51,12 +70,20 @@ export class UpdateProviderProfileDto {
   @ApiPropertyOptional({ type: 'string', format: 'binary' })
   certificate?: any;
 
+  @ApiPropertyOptional({ type: 'string', format: 'binary' })
+  governmentIssueId?: any;
+
+  @ApiPropertyOptional({ type: 'string', format: 'binary' })
+  marketplaceInsurance?: any;
+
+  @ApiPropertyOptional({ type: 'string', format: 'binary' })
+  additionalCertificate?: any;
+
   @ApiPropertyOptional({ example: 'specialization-uuid-string-updated' })
   @IsString()
   @IsOptional()
   specializationId?: string;
 }
-
 
 export class AvailabilityDayDto {
   @ApiProperty({ enum: DayOfWeek, example: DayOfWeek.SATURDAY })
