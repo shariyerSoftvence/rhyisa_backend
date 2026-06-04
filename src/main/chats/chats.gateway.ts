@@ -17,7 +17,6 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { ChatEvents, CreateMessageDto } from './dto/chats.dto';
 import { WEBSOCKET_CORS_CONFIG } from '../../common/constants/cors.constants';
 
-
 @WebSocketGateway({
   cors: WEBSOCKET_CORS_CONFIG,
   namespace: '/chat',
@@ -92,7 +91,10 @@ export class ChatsGateway
     const { receiverId } = data;
 
     // Find or create a chat between sender and receiver
-    const chat = await this.chatService.getOrCreatePrivateChat(user.id, receiverId);
+    const chat = await this.chatService.getOrCreatePrivateChat(
+      user.id,
+      receiverId,
+    );
 
     // Create the message
     const message = await this.chatService.createMessage(
