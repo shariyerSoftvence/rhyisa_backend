@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { RedisService } from '../../common/redis/redis.service';
 
-
 interface UserPresence {
   userId: string;
   socketId: string;

@@ -1,5 +1,22 @@
-import { Controller, Get, Post, Patch, Delete, Body, UseGuards, Req, UseInterceptors, UploadedFile } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  UseGuards,
+  Req,
+  UseInterceptors,
+  UploadedFile,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiConsumes,
+} from '@nestjs/swagger';
 
 import { CreateUserProfileDto } from './dto/create-profile.dto';
 import { UpdateUserProfileDto } from './dto/update-profile.dto';
@@ -9,7 +26,6 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { RoleType } from '../../../generated/prisma/enums';
 import { UserProfileService } from './users.service';
 import { FileInterceptor } from '@nestjs/platform-express';
-
 
 @ApiTags('Client User Profile Portfolio')
 @Controller('user/profile')
@@ -21,7 +37,10 @@ export class UserProfileController {
 
   @Post()
   @ApiConsumes('multipart/form-data')
-  @ApiOperation({ summary: 'Create personalized user metric profile record with memory image buffers storage' })
+  @ApiOperation({
+    summary:
+      'Create personalized user metric profile record with memory image buffers storage',
+  })
   @UseInterceptors(FileInterceptor('profileImage'))
   async createMyProfile(
     @Req() req: any,
@@ -33,9 +52,19 @@ export class UserProfileController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Retrieve operational profile indices parameters matching active token identity context' })
-  @ApiResponse({ status: 200, description: 'Profile collection payload maps returned cleanly.' })
-  @ApiResponse({ status: 404, description: 'Profile reference markers missing inside database cluster parameters.' })
+  @ApiOperation({
+    summary:
+      'Retrieve operational profile indices parameters matching active token identity context',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Profile collection payload maps returned cleanly.',
+  })
+  @ApiResponse({
+    status: 404,
+    description:
+      'Profile reference markers missing inside database cluster parameters.',
+  })
   async getMyProfile(@Req() req: any) {
     const authId = req.user.id;
     return this.userProfileService.getProfileByAuthId(authId);
@@ -43,7 +72,10 @@ export class UserProfileController {
 
   @Patch()
   @ApiConsumes('multipart/form-data')
-  @ApiOperation({ summary: 'Update physical configurations attributes indexes trace details properties dynamically' })
+  @ApiOperation({
+    summary:
+      'Update physical configurations attributes indexes trace details properties dynamically',
+  })
   @UseInterceptors(FileInterceptor('profileImage'))
   async updateMyProfile(
     @Req() req: any,
@@ -55,8 +87,15 @@ export class UserProfileController {
   }
 
   @Delete('account')
-  @ApiOperation({ summary: 'Initiate account deactivation soft purge workflow sequence (Self-Delete)' })
-  @ApiResponse({ status: 200, description: 'Target credentials identity marker switched cleanly to DELETED state configuration.' })
+  @ApiOperation({
+    summary:
+      'Initiate account deactivation soft purge workflow sequence (Self-Delete)',
+  })
+  @ApiResponse({
+    status: 200,
+    description:
+      'Target credentials identity marker switched cleanly to DELETED state configuration.',
+  })
   async deleteMyAccount(@Req() req: any) {
     const authId = req.user.id;
     return this.userProfileService.selfDeleteAccount(authId);

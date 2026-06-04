@@ -1,14 +1,33 @@
-import { Controller, Post, Body, Get, UseGuards, Req, Patch } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Get,
+  UseGuards,
+  Req,
+  Patch,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
-import { VerifyOtpDto, ForgotPasswordDto, VerifyForgotPasswordDto, ChangePasswordDto, LogoutDto } from './dto/auth-extra.dto';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
+import {
+  VerifyOtpDto,
+  ForgotPasswordDto,
+  VerifyForgotPasswordDto,
+  ChangePasswordDto,
+  LogoutDto,
+} from './dto/auth-extra.dto';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiBody,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { RoleType } from '../../../generated/prisma/enums';
-
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -17,7 +36,10 @@ export class AuthController {
 
   @Post('register')
   @ApiOperation({ summary: 'Register a new user' })
-  @ApiResponse({ status: 201, description: 'User successfully registered. OTP sent to email.' })
+  @ApiResponse({
+    status: 201,
+    description: 'User successfully registered. OTP sent to email.',
+  })
   async register(@Body() registerDto: RegisterDto) {
     return await this.authService.register(registerDto);
   }
@@ -46,8 +68,12 @@ export class AuthController {
   @Post('verify-forgot-password')
   @ApiOperation({ summary: 'Verify forgot password OTP and set new password' })
   @ApiResponse({ status: 200, description: 'Password reset successfully' })
-  async verifyForgotPasswordOtp(@Body() verifyForgotPasswordDto: VerifyForgotPasswordDto) {
-    return await this.authService.verifyForgotPasswordOtp(verifyForgotPasswordDto);
+  async verifyForgotPasswordOtp(
+    @Body() verifyForgotPasswordDto: VerifyForgotPasswordDto,
+  ) {
+    return await this.authService.verifyForgotPasswordOtp(
+      verifyForgotPasswordDto,
+    );
   }
 
   @Patch('change-password')
@@ -55,8 +81,14 @@ export class AuthController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Change password for logged in user' })
   @ApiResponse({ status: 200, description: 'Password changed successfully' })
-  async changePassword(@Req() req: any, @Body() changePasswordDto: ChangePasswordDto) {
-    return await this.authService.changePassword(req.user.id, changePasswordDto);
+  async changePassword(
+    @Req() req: any,
+    @Body() changePasswordDto: ChangePasswordDto,
+  ) {
+    return await this.authService.changePassword(
+      req.user.id,
+      changePasswordDto,
+    );
   }
 
   @Get('me')
@@ -68,7 +100,7 @@ export class AuthController {
     return await this.authService.getMe(req.user.id);
   }
 
- @Post('refresh')
+  @Post('refresh')
   @ApiOperation({ summary: 'Refresh access token' })
   @ApiBody({
     schema: {
@@ -82,9 +114,7 @@ export class AuthController {
       required: ['refreshToken'],
     },
   })
-  async refresh(
-    @Body('refreshToken') refreshToken: string,
-  ) {
+  async refresh(@Body('refreshToken') refreshToken: string) {
     return await this.authService.refreshToken(refreshToken);
   }
 
@@ -100,11 +130,7 @@ export class AuthController {
   @Post('logout')
   @ApiOperation({ summary: 'Logout user' })
   @ApiBody({ type: LogoutDto })
-  async logout(
-    @Body() logoutDto: LogoutDto,
-  ) {
-    return this.authService.logout(
-      logoutDto.refreshToken,
-    );
+  async logout(@Body() logoutDto: LogoutDto) {
+    return this.authService.logout(logoutDto.refreshToken);
   }
 }

@@ -4,6 +4,6 @@ import { UserManagementController } from './user-management.controller';
 
 @Module({
   providers: [UserManagementService],
-  controllers: [UserManagementController]
+  controllers: [UserManagementController],
 })
 export class UserManagementModule {}

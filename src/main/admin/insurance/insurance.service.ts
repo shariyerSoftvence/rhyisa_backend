@@ -1,14 +1,17 @@
-
-import { Injectable, InternalServerErrorException, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { CreateInsuranceDto } from './dto/create-insurance.dto';
 import { UpdateInsuranceDto } from './dto/update-insurance.dto';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { RedisService } from '../../../common/redis/redis.service';
 
-
 @Injectable()
 export class InsuranceService {
-//   private readonly CACHE_KEY_PREFIX = 'insurance:';
+  //   private readonly CACHE_KEY_PREFIX = 'insurance:';
   private readonly ALL_INSURANCE_CACHE_KEY = 'insurance:all:';
 
   constructor(
@@ -22,7 +25,9 @@ export class InsuranceService {
         where: { name: dto.name },
       });
       if (existing) {
-        throw new ConflictException('Insurance company with this name already exists');
+        throw new ConflictException(
+          'Insurance company with this name already exists',
+        );
       }
 
       const lastRecord = await this.prisma.insuranceCompany.findFirst({
@@ -43,7 +48,9 @@ export class InsuranceService {
       return result;
     } catch (error) {
       if (error instanceof ConflictException) throw error;
-      throw new InternalServerErrorException('Failed to create insurance company');
+      throw new InternalServerErrorException(
+        'Failed to create insurance company',
+      );
     }
   }
 
@@ -51,7 +58,7 @@ export class InsuranceService {
     try {
       const cacheKey = `${this.ALL_INSURANCE_CACHE_KEY}page_${page}_limit_${limit}`;
       const cachedData = await this.redis.get<any>(cacheKey);
-      
+
       if (cachedData) {
         return cachedData;
       }
@@ -79,7 +86,9 @@ export class InsuranceService {
       await this.redis.set(cacheKey, response, 300); // Cached for 5 minutes
       return response;
     } catch (error) {
-      throw new InternalServerErrorException('Failed to fetch insurance companies');
+      throw new InternalServerErrorException(
+        'Failed to fetch insurance companies',
+      );
     }
   }
 
@@ -89,7 +98,9 @@ export class InsuranceService {
         where: { id },
       });
       if (!existing) {
-        throw new NotFoundException(`Insurance company with ID ${id} not found`);
+        throw new NotFoundException(
+          `Insurance company with ID ${id} not found`,
+        );
       }
 
       if (dto.name && dto.name !== existing.name) {
@@ -97,7 +108,9 @@ export class InsuranceService {
           where: { name: dto.name },
         });
         if (nameConflict) {
-          throw new ConflictException('Insurance company with this name already exists');
+          throw new ConflictException(
+            'Insurance company with this name already exists',
+          );
         }
       }
 
@@ -109,8 +122,14 @@ export class InsuranceService {
       await this.clearInsuranceCache();
       return updated;
     } catch (error) {
-      if (error instanceof NotFoundException || error instanceof ConflictException) throw error;
-      throw new InternalServerErrorException('Failed to update insurance company');
+      if (
+        error instanceof NotFoundException ||
+        error instanceof ConflictException
+      )
+        throw error;
+      throw new InternalServerErrorException(
+        'Failed to update insurance company',
+      );
     }
   }
 
@@ -120,7 +139,9 @@ export class InsuranceService {
         where: { id },
       });
       if (!existing) {
-        throw new NotFoundException(`Insurance company with ID ${id} not found`);
+        throw new NotFoundException(
+          `Insurance company with ID ${id} not found`,
+        );
       }
 
       await this.prisma.insuranceCompany.delete({
@@ -131,17 +152,18 @@ export class InsuranceService {
       return { message: 'Insurance company successfully removed' };
     } catch (error) {
       if (error instanceof NotFoundException) throw error;
-      throw new InternalServerErrorException('Failed to delete insurance company');
+      throw new InternalServerErrorException(
+        'Failed to delete insurance company',
+      );
     }
   }
 
   private async clearInsuranceCache() {
     try {
-
-    //   const cachePattern = `${this.ALL_INSURANCE_CACHE_KEY}*`;
+      //   const cachePattern = `${this.ALL_INSURANCE_CACHE_KEY}*`;
       await this.redis.del(`${this.ALL_INSURANCE_CACHE_KEY}page_1_limit_10`);
     } catch (error) {
-       console.log(error)
+      console.log(error);
     }
   }
 }

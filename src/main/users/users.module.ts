@@ -5,8 +5,8 @@ import { UploadFilesModule } from '../../common/upload-files/upload-files.module
 import { OpenaiService } from '../openai/openai.service';
 
 @Module({
-  providers: [UserProfileService,OpenaiService],
+  providers: [UserProfileService, OpenaiService],
   controllers: [UserProfileController],
-  imports: [UploadFilesModule]
+  imports: [UploadFilesModule],
 })
 export class UsersModule {}

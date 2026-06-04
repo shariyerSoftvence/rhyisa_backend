@@ -82,7 +82,7 @@ export class SocketAuthMiddleware {
           }
         }
 
-        const userId = payload.sub;
+        const userId = payload.user.id;
         if (!userId) {
           this.logger.warn(`Token payload missing user ID: ${socket.id}`);
           return next(new Error(AuthSocketError.MISSING_USER_ID));
