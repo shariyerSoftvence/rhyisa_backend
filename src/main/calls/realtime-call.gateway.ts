@@ -42,7 +42,7 @@ export class RealTimeCallGateway
   }
 
   async handleConnection(client: Socket) {
-    const userId = client.data.userId;
+    const userId = client.data?.userId || client.data?.user?.id;
     if (!userId) {
       this.logger.error('Unauthenticated socket reached handleConnection');
       client.disconnect(true);
@@ -54,13 +54,12 @@ export class RealTimeCallGateway
   }
 
   handleDisconnect(client: Socket) {
-    const userId = client.data?.userId;
+    const userId = client.data?.userId || client.data?.user?.id;
     if (userId) {
       this.users.delete(userId);
       this.logger.log(`User disconnected: ${userId}`);
     }
   }
-
 
   @SubscribeMessage('start-call')
   async startCall(

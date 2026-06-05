@@ -1,11 +1,8 @@
-
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as jwt from 'jsonwebtoken';
 import { Socket } from 'socket.io';
 import { PrismaService } from '../../prisma/prisma.service';
-
-
 
 /**
  * Socket Authentication Error Messages
@@ -33,7 +30,6 @@ export class SocketAuthMiddleware {
     private readonly prisma: PrismaService,
   ) {}
 
-
   use() {
     return async (socket: Socket, next: (err?: Error) => void) => {
       try {
@@ -60,7 +56,9 @@ export class SocketAuthMiddleware {
         }
 
         // Verify JWT token
-        const jwtSecret = this.configService.get<string>('JWT_ACCESS_SECRET') || process.env.JWT_ACCESS_SECRET;
+        const jwtSecret =
+          this.configService.get<string>('JWT_ACCESS_SECRET') ||
+          process.env.JWT_ACCESS_SECRET;
         if (!jwtSecret) {
           this.logger.error('JWT_ACCESS_SECRET is not configured');
           return next(new Error(AuthSocketError.SERVER_CONFIG_ERROR));
@@ -82,7 +80,12 @@ export class SocketAuthMiddleware {
           }
         }
 
-        const userId = payload.user.id;
+        // Support multiple JWT payload shapes produced across the app:
+        // - { sub: '<userId>' }  (common when using JwtService with `sub`)
+        // - { user: { id: '<userId>' } }
+        // - { id: '<userId>' }
+        const userId =
+          payload?.sub || payload?.user?.id || payload?.id || payload?.auth?.id;
         if (!userId) {
           this.logger.warn(`Token payload missing user ID: ${socket.id}`);
           return next(new Error(AuthSocketError.MISSING_USER_ID));

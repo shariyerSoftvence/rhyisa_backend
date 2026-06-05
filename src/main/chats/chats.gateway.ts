@@ -69,7 +69,7 @@ export class ChatsGateway
   }
 
   async handleDisconnect(client: Socket) {
-    const userId = client.data?.userId;
+    const userId = client.data?.userId || client.data?.user?.id;
     if (userId) {
       await this.activeUsersService.setUserOffline(userId);
       this.logger.log(`User disconnected from chat: ${userId}`);
