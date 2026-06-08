@@ -14,6 +14,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { MailService } from '../../common/mail/mail.service';
+import { InternalNotificationPublisherService } from '../notification/internal-notification-publisher.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import {
@@ -34,6 +35,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly mailService: MailService,
+    private readonly notificationPublisher: InternalNotificationPublisherService,
   ) {}
 
   async register(registerDto: RegisterDto) {
@@ -59,6 +61,27 @@ export class AuthService {
           status: UserStatus.INACTIVE,
         },
       });
+
+      // Send notification to admins about new registration
+      try {
+        await this.notificationPublisher.publishNotification({
+          type: 'NEW_USER_REGISTRATION',
+          title: 'New User Registration',
+          message: `A new ${role} has registered. Email: ${email}, Name: ${fullName}`,
+          meta: {
+            userId: user.id,
+            userEmail: email,
+            userRole: role,
+            fullName: fullName,
+            registeredAt: new Date().toISOString(),
+          },
+          recipientAuthIds: [], // Empty array triggers broadcast to all admins
+        });
+      } catch (notifyError: any) {
+        this.logger.warn(
+          `Failed to send registration notification: ${notifyError.message}`,
+        );
+      }
 
       await this.generateAndSendOtp(user.id, email, OTPType.EMAIL_VERIFICATION);
 

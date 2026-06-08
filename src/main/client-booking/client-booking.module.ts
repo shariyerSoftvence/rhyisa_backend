@@ -5,8 +5,10 @@ import { ClientBookingHistoryController } from './controllers/client-booking-his
 import { ClientBookingHistoryService } from './services/client-booking-history.service';
 import { ProviderBookingOperationsController } from './controllers/provider-booking-operations.controller';
 import { ProviderBookingOperationsService } from './services/provider-booking-operations.service';
+import { NotificationModule } from '../notification/notification.module';
 
 @Module({
+  imports: [NotificationModule],
   providers: [
     ClientBookingService,
     ClientBookingHistoryService,

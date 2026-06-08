@@ -23,6 +23,7 @@ import { TrackMealModule } from './main/track-meal/track-meal.module';
 import { ClientProviderDirectoryModule } from './main/client-provider-directory/client-provider-directory.module';
 import { ClientBookingModule } from './main/client-booking/client-booking.module';
 import { FeedbackReviewsModule } from './main/feedback-reviews/feedback-reviews.module';
+import { NotificationModule } from './main/notification/notification.module';
 
 
 
@@ -48,7 +49,8 @@ import { FeedbackReviewsModule } from './main/feedback-reviews/feedback-reviews.
     TrackMealModule,
     ClientProviderDirectoryModule,
     ClientBookingModule,
-    FeedbackReviewsModule
+    FeedbackReviewsModule,
+    NotificationModule
   ],
   controllers: [AppController],
   providers: [AppService, SeedService],

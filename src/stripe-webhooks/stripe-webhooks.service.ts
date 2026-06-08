@@ -5,6 +5,7 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { InternalNotificationPublisherService } from '../main/notification/internal-notification-publisher.service';
 import Stripe from 'stripe';
 
 @Injectable()
@@ -12,7 +13,10 @@ export class StripeWebhooksService {
   private readonly logger = new Logger(StripeWebhooksService.name);
   private readonly stripe: any;
 
-  constructor(private readonly prisma: PrismaService) {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notificationPublisher: InternalNotificationPublisherService,
+  ) {
     this.stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
       apiVersion: '2024-12-18.acacia' as any,
     });
@@ -155,6 +159,49 @@ export class StripeWebhooksService {
         this.logger.log(
           `Booking ${createdBooking.id} and Payment metrics logged dynamically inside system registries database.`,
         );
+
+        // Get provider auth ID for notification
+        const provider = await tx.auth.findFirst({
+          where: { id: providerId },
+          select: { id: true },
+        });
+
+        // Send notification to provider about new booking
+        if (provider) {
+          await this.notificationPublisher.publishNotification({
+            type: 'BOOKING_CONFIRMED',
+            title: 'New Booking Received',
+            message: `A new service booking has been confirmed. Booking ID: ${createdBooking.id}`,
+            meta: {
+              bookingId: createdBooking.id,
+              userId,
+              providerId,
+              bookingDate,
+              startTime,
+              endTime,
+              totalAmount,
+            },
+            recipientAuthIds: [provider.id],
+          });
+        }
+
+        // Also send notification to admins
+        await this.notificationPublisher.publishNotification({
+          type: 'BOOKING_CONFIRMED_ADMIN',
+          title: 'New Service Booking',
+          message: `Service booking confirmed. Booking ID: ${createdBooking.id}, Amount: $${totalAmount}`,
+          meta: {
+            bookingId: createdBooking.id,
+            userId,
+            providerId,
+            bookingDate,
+            startTime,
+            endTime,
+            totalAmount,
+            platformFee,
+          },
+          recipientAuthIds: [], // Empty array triggers admin broadcast
+        });
       });
     } catch (error: any) {
       this.logger.error(
