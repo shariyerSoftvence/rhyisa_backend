@@ -159,6 +159,9 @@ model UserDailyHealthLog {
 
   @@map("daily_health_logs")
 }
+
+
+
 enum MoodType {
   STEADY
   HAPPY

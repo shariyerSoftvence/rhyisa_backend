@@ -1,18 +1,28 @@
 export interface TrackMealResponse {
   isValidMeal: boolean;
-  mealName: string;
-  estimatedServing: string;
-  totalCalories: number;
-  carbsInGrams: number;
-  fatInGrams: number;
-  recommendations: RecommendationItem[];
+  overall: {
+    totalCalories: number;
+    totalProtein: number;
+    totalCarbs: number;
+    totalFat: number;
+  };
+  detectedMeals: Array<{
+    name: string;
+    estimatedServing: string;
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+  }>;
+  nutritionQualityScore: number;
+  nutritionSummary: string;
 }
 
-export interface RecommendationItem {
-  name: string;
-  time: string;
-  calories: number;
-  protein: number;
-  carbs: number;
-  fat: number;
-}
+// export interface RecommendationItem {
+//   name: string;
+//   time: string;
+//   calories: number;
+//   protein: number;
+//   carbs: number;
+//   fat: number;
+// }

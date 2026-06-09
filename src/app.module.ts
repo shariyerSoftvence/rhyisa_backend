@@ -24,6 +24,7 @@ import { ClientProviderDirectoryModule } from './main/client-provider-directory/
 import { ClientBookingModule } from './main/client-booking/client-booking.module';
 import { FeedbackReviewsModule } from './main/feedback-reviews/feedback-reviews.module';
 import { NotificationModule } from './main/notification/notification.module';
+import { UserDailyLogsModule } from './main/user-daily-logs/user-daily-logs.module';
 
 
 
@@ -50,7 +51,8 @@ import { NotificationModule } from './main/notification/notification.module';
     ClientProviderDirectoryModule,
     ClientBookingModule,
     FeedbackReviewsModule,
-    NotificationModule
+    NotificationModule,
+    UserDailyLogsModule
   ],
   controllers: [AppController],
   providers: [AppService, SeedService],
