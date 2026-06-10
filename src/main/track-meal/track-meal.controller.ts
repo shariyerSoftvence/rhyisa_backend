@@ -7,6 +7,7 @@ import {
   BadRequestException,
   UseGuards,
   Req,
+  Patch,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -22,6 +23,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { RoleType } from '../../../generated/prisma/enums';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { LogDailyMetricsDto } from './dto/log-daily-metrics.dto';
 
 @ApiTags('Track Meal Analytics Engine')
 @Controller('track-meal')
@@ -91,5 +93,13 @@ export class TrackMealController {
   })
   async confirmMeal(@Req() req: any) {
     return this.trackMealService.confirmAndLogMeal(req.user.id);
+  }
+
+@Patch('daily-log')
+  @ApiOperation({
+    summary: 'Modify or update today\'s non-meal metrics safely without breaking existing macro entries',
+  })
+  async logDailyMetrics(@Req() req: any, @Body() dto: LogDailyMetricsDto) {
+    return this.trackMealService.createOrUpdateDailyMetrics(req.user.id, dto);
   }
 }

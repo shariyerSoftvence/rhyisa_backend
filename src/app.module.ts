@@ -51,8 +51,8 @@ import { UserDailyLogsModule } from './main/user-daily-logs/user-daily-logs.modu
     ClientProviderDirectoryModule,
     ClientBookingModule,
     FeedbackReviewsModule,
-    NotificationModule,
-    UserDailyLogsModule
+    UserDailyLogsModule,
+     NotificationModule,
   ],
   controllers: [AppController],
   providers: [AppService, SeedService],

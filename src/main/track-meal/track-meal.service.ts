@@ -10,6 +10,7 @@ import { OpenaiService } from '../openai/openai.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TrackMealTextDto } from './dto/track-meal.dto';
 import { RedisService } from '../../common/redis/redis.service';
+import { LogDailyMetricsDto } from './dto/log-daily-metrics.dto';
 
 @Injectable()
 export class TrackMealService {
@@ -175,6 +176,59 @@ export class TrackMealService {
         throw error;
       throw new InternalServerErrorException(
         `Failed to persist meal metrics inside daily log registry: ${error.message}`,
+      );
+    }
+  }
+
+  async createOrUpdateDailyMetrics(authId: string, dto: LogDailyMetricsDto) {
+    try {
+      const userProfile = await this.prisma.userProfile.findUnique({
+        where: { authId },
+      });
+
+      if (!userProfile) {
+        throw new NotFoundException('User profile records missing from registry');
+      }
+
+      const startOfToday = new Date();
+      startOfToday.setUTCHours(0, 0, 0, 0);
+
+      const updatedLog = await this.prisma.userDailyHealthLog.upsert({
+        where: {
+          userProfileId_date: {
+            userProfileId: userProfile.id,
+            date: startOfToday,
+          },
+        },
+        update: {
+          waterGlasses: dto.waterGlasses,
+          steps: dto.steps,
+          sleepHours: dto.sleepHours,
+          sleepMinutes: dto.sleepMinutes,
+        },
+        create: {
+          userProfileId: userProfile.id,
+          date: startOfToday,
+          waterGlasses: dto.waterGlasses,
+          steps: dto.steps,
+          sleepHours: dto.sleepHours,
+          sleepMinutes: dto.sleepMinutes,
+          calories: 0,
+          proteinGrams: 0,
+          carbsGrams: 0,
+          fatGrams: 0,
+          healthScore: 0,
+        },
+      });
+
+      return {
+        success: true,
+        data: updatedLog,
+      };
+    } catch (error: any) {
+      if (error instanceof NotFoundException) throw error;
+      throw new InternalServerErrorException(
+        `Failed to update daily metrics tracking parameters: ${error.message}`,
       );
     }
   }
