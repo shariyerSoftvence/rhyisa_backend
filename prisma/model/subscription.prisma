@@ -1,0 +1,35 @@
+model SubscriptionPurchase {
+  id                 String           @id @default(uuid())
+  stripeSessionId    String?          @unique
+  stripeInvoiceId    String?          @unique
+  status             String           
+  amountPaid         Float
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+
+  userProfileId      String           @unique 
+  userProfile        UserProfile      @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+  
+  planId             String
+  plan               SubscriptionPlan @relation(fields: [planId], references: [id])
+
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  @@map("subscription_purchases")
+}
+
+model SubscriptionPlan {
+  id          String   @id @default(uuid())
+  name        String   
+  price       Float    
+  interval    String   
+  description String[] 
+
+  purchases   SubscriptionPurchase[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("subscription_plans")
+}

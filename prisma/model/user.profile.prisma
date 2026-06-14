@@ -52,8 +52,8 @@ model UserProfile {
   profileImageId String? @unique
   profileImage   Media?  @relation("UserProfileImage", fields: [profileImageId], references: [id])
 
-  // Subscription & Payment
-  subscriptionType SubscriptionType @default(FREE)
+  subscriptionType     SubscriptionType      @default(FREE)
+  subscribed           SubscriptionPurchase?
   stripeCustomerId String?          @unique
 
   // Relations

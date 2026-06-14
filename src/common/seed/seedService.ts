@@ -53,4 +53,43 @@ export class SeedService {
       throw new InternalServerErrorException('Failed to complete super admin seeding execution');
     }
   }
+
+  async seedSubscriptionPlansOnly() {
+    try {
+      const existingPlan = await this.prisma.subscriptionPlan.findFirst({
+        where: { name: 'Premium Dashboard' },
+      });
+
+      if (existingPlan) {
+        this.logger.log('Premium Dashboard subscription plan details already seeded. Skipping.');
+        return { success: true, message: 'Plan details already exist.' };
+      }
+
+      const seededPlan = await this.prisma.subscriptionPlan.create({
+        data: {
+          name: 'Premium Dashboard',
+          price: Number(process.env.SUBSCRIPTION_PRICE!),
+          interval: 'month',
+          description: [
+            'Everything in free, plus:',
+            '5–10 AI recommendations/day',
+            'Full weekly & monthly data reports',
+            'Access to all health providers',
+            'Full calorie surplus/deficit analysis',
+            'Progress tracking with charts (daily / weekly / monthly)',
+          ],
+        },
+      });
+
+      this.logger.log(`Subscription plan data structures successfully seeded with ID: ${seededPlan.id}`);
+      return {
+        success: true,
+        message: 'Subscription plan details populated perfectly.',
+        data: seededPlan,
+      };
+    } catch (error: any) {
+      this.logger.error('Failed to isolate subscription details seed execution processing loops', error);
+      throw new InternalServerErrorException(`Subscription isolated details population failed: ${error.message}`);
+    }
+  }
 }

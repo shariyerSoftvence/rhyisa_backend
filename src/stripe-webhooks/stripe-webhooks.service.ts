@@ -7,6 +7,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { InternalNotificationPublisherService } from '../main/notification/internal-notification-publisher.service';
 import Stripe from 'stripe';
+import { SubscriptionType } from '../../generated/prisma/enums';
 
 @Injectable()
 export class StripeWebhooksService {
@@ -107,6 +108,12 @@ export class StripeWebhooksService {
       return;
     }
 
+    // Determine type from metadata parameters to switch logic cleanly
+    if (metadata.type === 'SUBSCRIPTION_PURCHASE') {
+      await this.handleSubscriptionPurchaseCompleted(session, metadata);
+      return;
+    }
+
     const {
       userId,
       providerId,
@@ -160,13 +167,11 @@ export class StripeWebhooksService {
           `Booking ${createdBooking.id} and Payment metrics logged dynamically inside system registries database.`,
         );
 
-        // Get provider auth ID for notification
         const provider = await tx.auth.findFirst({
           where: { id: providerId },
           select: { id: true },
         });
 
-        // Send notification to provider about new booking
         if (provider) {
           await this.notificationPublisher.publishNotification({
             type: 'BOOKING_CONFIRMED',
@@ -185,7 +190,6 @@ export class StripeWebhooksService {
           });
         }
 
-        // Also send notification to admins
         await this.notificationPublisher.publishNotification({
           type: 'BOOKING_CONFIRMED_ADMIN',
           title: 'New Service Booking',
@@ -200,12 +204,77 @@ export class StripeWebhooksService {
             totalAmount,
             platformFee,
           },
-          recipientAuthIds: [], // Empty array triggers admin broadcast
+          recipientAuthIds: [],
         });
       });
     } catch (error: any) {
       this.logger.error(
         `Database atomic persistence engine transaction failed while mapping booking: ${error.message}`,
+      );
+      throw error;
+    }
+  }
+
+  private async handleSubscriptionPurchaseCompleted(
+    session: any,
+    metadata: any,
+  ) {
+    const { userProfileId, planId } = metadata;
+    this.logger.log(
+      `Processing premium tier update logic for user profile target ID: ${userProfileId}`,
+    );
+
+    try {
+      const currentPeriodStart = new Date();
+      const currentPeriodEnd = new Date();
+      currentPeriodEnd.setMonth(currentPeriodEnd.getMonth() + 1);
+
+      await this.prisma.$transaction(async (tx) => {
+        // Enforce update patterns via explicit 1-to-1 matching updates directly inside the profile model mappings
+        await tx.userProfile.update({
+          where: { id: userProfileId },
+          data: {
+            subscriptionType: SubscriptionType.PREMIUM,
+            subscribed: {
+              upsert: {
+                create: {
+                  stripeSessionId: session.id,
+                  stripeInvoiceId: session.invoice
+                    ? String(session.invoice)
+                    : null,
+                  status: 'active',
+                  amountPaid: session.amount_total
+                    ? session.amount_total / 100
+                    : 8.99,
+                  currentPeriodStart,
+                  currentPeriodEnd,
+                  planId: planId,
+                },
+                update: {
+                  stripeSessionId: session.id,
+                  stripeInvoiceId: session.invoice
+                    ? String(session.invoice)
+                    : null,
+                  status: 'active',
+                  amountPaid: session.amount_total
+                    ? session.amount_total / 100
+                    : 8.99,
+                  currentPeriodStart,
+                  currentPeriodEnd,
+                  planId: planId,
+                },
+              },
+            },
+          },
+        });
+      });
+
+      this.logger.log(
+        `Subscription model linkages synchronized successfully for user profile: ${userProfileId}`,
+      );
+    } catch (error: any) {
+      this.logger.error(
+        `Failed to handle completed purchase webhook processes safely: ${error.message}`,
       );
       throw error;
     }

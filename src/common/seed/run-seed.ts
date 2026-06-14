@@ -9,8 +9,13 @@ async function bootstrapSeeder() {
     const seedService = app.get(SeedService);
 
     console.log('Starting data seeding processing...');
-   const data = await seedService.seedSuperAdmin();
-    console.log(data)
+    
+    const adminData = await seedService.seedSuperAdmin();
+    console.log('Admin Seeding Result:', adminData);
+
+    const subscriptionData = await seedService.seedSubscriptionPlansOnly();
+    console.log('Subscription Seeding Result:', subscriptionData);
+    
     console.log('Seeding execution process finished successfully.');
     
     await app.close();

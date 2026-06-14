@@ -25,8 +25,7 @@ import { ClientBookingModule } from './main/client-booking/client-booking.module
 import { FeedbackReviewsModule } from './main/feedback-reviews/feedback-reviews.module';
 import { NotificationModule } from './main/notification/notification.module';
 import { UserDailyLogsModule } from './main/user-daily-logs/user-daily-logs.module';
-
-
+import { SubscriptionModule } from './main/subscription/subscription.module';
 
 @Module({
   imports: [
@@ -52,7 +51,8 @@ import { UserDailyLogsModule } from './main/user-daily-logs/user-daily-logs.modu
     ClientBookingModule,
     FeedbackReviewsModule,
     UserDailyLogsModule,
-     NotificationModule,
+    NotificationModule,
+    SubscriptionModule,
   ],
   controllers: [AppController],
   providers: [AppService, SeedService],

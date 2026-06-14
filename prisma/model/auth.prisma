@@ -18,7 +18,6 @@ model Auth {
   isVerified      Boolean    @default(false)
   isOnline        Boolean    @default(false)
   isPhoneVerified Boolean    @default(false)
-  
 
   otps          OTP[]
   refreshTokens RefreshToken[]
