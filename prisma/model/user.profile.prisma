@@ -12,6 +12,7 @@ enum CurrentDiet {
   LOW_CARD
   PLAN_BASED
 }
+
 enum PrimaryGoal {
   LOSE_WEIGHT
   BUILD_MUSCLE
