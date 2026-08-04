@@ -5,16 +5,22 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { OpenaiService } from '../openai/openai.service';
+import { RedisService } from '../../common/redis/redis.service';
 
 @Injectable()
 export class UserDailyLogsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly openaiService: OpenaiService,
+    private readonly redis: RedisService,
   ) {}
 
   async getTodayProgressWithGoal(authId: string) {
     try {
+      const cacheKey = `health:today:${authId}`;
+      const cached = await this.redis.get<any>(cacheKey);
+      if (cached) return cached;
+
       const userProfile = await this.prisma.userProfile.findUnique({
         where: { authId },
         include: { healthGoal: true },
@@ -110,7 +116,7 @@ export class UserDailyLogsService {
           },
         });
 
-      return {
+      const response = {
         success: true,
         data: {
           overallHealthScore:
@@ -138,6 +144,9 @@ export class UserDailyLogsService {
           assignedGoals: goals,
         },
       };
+
+      await this.redis.set(cacheKey, response, 120);
+      return response;
     } catch (error: any) {
       if (error instanceof NotFoundException) throw error;
       throw new InternalServerErrorException(
@@ -146,54 +155,61 @@ export class UserDailyLogsService {
     }
   }
 
-async get30DaysHealthScoreHistory(authId: string) {
-try {
-const userProfile = await this.prisma.userProfile.findUnique({
-    where: { authId },
-});
+  async get30DaysHealthScoreHistory(authId: string) {
+    try {
+      const cacheKey = `health:history30:${authId}`;
+      const cached = await this.redis.get<any>(cacheKey);
+      if (cached) return cached;
 
-if (!userProfile) {
-    throw new NotFoundException(
-    'User profile records missing from registry',
-    );
-}
+      const userProfile = await this.prisma.userProfile.findUnique({
+        where: { authId },
+      });
 
-const thirtyDaysAgo = new Date();
-thirtyDaysAgo.setUTCDate(thirtyDaysAgo.getUTCDate() - 30);
+      if (!userProfile) {
+        throw new NotFoundException(
+          'User profile records missing from registry',
+        );
+      }
 
-const logs = await this.prisma.userDailyHealthLog.findMany({
-    where: {
-    userProfileId: userProfile.id,
-    date: { gte: thirtyDaysAgo },
-    },
-    select: {
-    date: true,
-    healthScore: true,
-    calories: true,
-    waterGlasses: true,
-    steps: true,
-    sleepHours: true,
-    },
-    orderBy: { date: 'asc' },
-});
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setUTCDate(thirtyDaysAgo.getUTCDate() - 30);
 
-// Pass the retrieved timeline history down to the OpenAI completion loop worker
-const aiIntelligenceAnalysis = await this.openaiService.generateHistoricalIntelligenceAnalysis({
-    logs,
-});
+      const logs = await this.prisma.userDailyHealthLog.findMany({
+        where: {
+          userProfileId: userProfile.id,
+          date: { gte: thirtyDaysAgo },
+        },
+        select: {
+          date: true,
+          healthScore: true,
+          calories: true,
+          waterGlasses: true,
+          steps: true,
+          sleepHours: true,
+        },
+        orderBy: { date: 'asc' },
+      });
 
-return {
-    success: true,
-    data: {
-    chartTimelineLogs: logs,
-    wellnessIntelligenceAnalysis: aiIntelligenceAnalysis,
-    },
-};
-} catch (error: any) {
-if (error instanceof NotFoundException) throw error;
-throw new InternalServerErrorException(
-    `Failed to compile multi-day analytical historical chart trends: ${error.message}`,
-);
-}
-}
+      // Pass the retrieved timeline history down to the OpenAI completion loop worker
+      const aiIntelligenceAnalysis = await this.openaiService.generateHistoricalIntelligenceAnalysis({
+        logs,
+      });
+
+      const response = {
+        success: true,
+        data: {
+          chartTimelineLogs: logs,
+          wellnessIntelligenceAnalysis: aiIntelligenceAnalysis,
+        },
+      };
+
+      await this.redis.set(cacheKey, response, 300);
+      return response;
+    } catch (error: any) {
+      if (error instanceof NotFoundException) throw error;
+      throw new InternalServerErrorException(
+        `Failed to compile multi-day analytical historical chart trends: ${error.message}`,
+      );
+    }
+  }
 }

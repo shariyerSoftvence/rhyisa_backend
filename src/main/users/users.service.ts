@@ -11,13 +11,18 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { MediaType, UserStatus } from '../../../generated/prisma/enums';
 import { UploadFilesService } from '../../common/upload-files/upload-files.service';
 import { OpenaiService } from '../openai/openai.service';
+import { RedisService } from '../../common/redis/redis.service';
 
 @Injectable()
 export class UserProfileService {
+  private readonly CACHE_PREFIX = 'user:profile:';
+  private readonly CACHE_TTL = 300;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly uploadFilesService: UploadFilesService,
     private readonly openaiService: OpenaiService,
+    private readonly redis: RedisService,
   ) {}
 
   async createProfile(
@@ -69,7 +74,7 @@ export class UserProfileService {
         };
       }
 
-      return await this.prisma.$transaction(async (tx) => {
+      const result = await this.prisma.$transaction(async (tx) => {
         const mediaRecord = await tx.media.create({
           data: {
             url: uploadedImage.url,
@@ -84,36 +89,21 @@ export class UserProfileService {
         const createdProfile = await tx.userProfile.create({
           data: {
             authId,
-
             fullName: dto.fullName || '',
-
             phoneNumber: dto.phoneNumber,
-
             address: dto.address,
-
             age: dto.age,
-
             gender: dto.gender,
-
             height: dto.height,
-
             weight: dto.weight,
-
             currentActivityLevel: dto.currentActivityLevel,
-
             currentDiet: dto.currentDiet,
-
             primaryGoal: dto.primaryGoal || [],
-
             motivationLevel: dto.motivationLevel,
-
             hasHealthCondition: dto.hasHealthCondition,
-
             supplements: dto.supplements || [],
-
             profileImageId: mediaRecord.id,
           },
-
           include: {
             profileImage: true,
           },
@@ -122,69 +112,49 @@ export class UserProfileService {
         const createdGoal = await tx.userHealthGoal.create({
           data: {
             userProfileId: createdProfile.id,
-
             calorieGoal: aiGoals.calorieGoal,
-
             proteinGoal: aiGoals.proteinGoal,
-
             carbsGoal: aiGoals.carbsGoal,
-
             fatGoal: aiGoals.fatGoal,
-
             waterGoal: aiGoals.waterGoal,
-
             stepsGoal: aiGoals.stepsGoal,
-
             sleepGoalHours: aiGoals.sleepGoalHours,
-
             generatedByAI: true,
           },
         });
 
         const today = new Date();
-
         today.setHours(0, 0, 0, 0);
 
         const todayLog = await tx.userDailyHealthLog.create({
           data: {
             userProfileId: createdProfile.id,
-
             date: today,
-
             calories: 0,
-
             waterGlasses: 0,
-
             proteinGrams: 0,
-
             carbsGrams: 0,
-
             fatGrams: 0,
-
             steps: 0,
-
             sleepHours: 0,
-
             sleepMinutes: 0,
-
             energyLevel: 1,
-
             healthScore: 0,
           },
         });
 
         return {
           success: true,
-
           message: 'User profile created successfully',
-
           profile: createdProfile,
-
           healthGoal: createdGoal,
-
           todayHealthLog: todayLog,
         };
       });
+
+      await this.redis.del(`${this.CACHE_PREFIX}${authId}`);
+      await this.redis.del(`auth:me:${authId}`);
+      return result;
     } catch (error: any) {
       console.error(error);
 
@@ -203,6 +173,10 @@ export class UserProfileService {
 
   async getProfileByAuthId(authId: string) {
     try {
+      const cacheKey = `${this.CACHE_PREFIX}${authId}`;
+      const cachedProfile = await this.redis.get<any>(cacheKey);
+      if (cachedProfile) return cachedProfile;
+
       const profile = await this.prisma.userProfile.findUnique({
         where: { authId },
         include: { auth: true, profileImage: true },
@@ -212,6 +186,8 @@ export class UserProfileService {
           `User profile linked to credential account context ${authId} was not found`,
         );
       }
+
+      await this.redis.set(cacheKey, profile, this.CACHE_TTL);
       return profile;
     } catch (error) {
       if (error instanceof NotFoundException) throw error;
@@ -396,7 +372,7 @@ export class UserProfileService {
           });
         }
 
-        return {
+        const res = {
           success: true,
 
           message: 'Profile updated successfully',
@@ -405,6 +381,9 @@ export class UserProfileService {
 
           healthGoal: updatedGoals || updatedProfile.healthGoal,
         };
+        await this.redis.del(`${this.CACHE_PREFIX}${authId}`);
+        await this.redis.del(`auth:me:${authId}`);
+        return res;
       });
     } catch (error: any) {
       console.error(error);
@@ -434,6 +413,9 @@ export class UserProfileService {
         where: { id: authId },
         data: { status: UserStatus.DELETED },
       });
+
+      await this.redis.del(`${this.CACHE_PREFIX}${authId}`);
+      await this.redis.del(`auth:me:${authId}`);
 
       return {
         message:

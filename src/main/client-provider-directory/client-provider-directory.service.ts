@@ -5,13 +5,21 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { GetProviderAvailabilityDto } from './dto/client-provider-query.dto';
+import { RedisService } from '../../common/redis/redis.service';
 
 @Injectable()
 export class ClientProviderDirectoryService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly redis: RedisService,
+  ) {}
 
   async getAllProviders() {
     try {
+      const cacheKey = 'directory:providers:all';
+      const cached = await this.redis.get<any>(cacheKey);
+      if (cached) return cached;
+
       const providers = await this.prisma.providerProfile.findMany({
         where: { status: 'ACCEPTED' },
         select: {
@@ -28,7 +36,7 @@ export class ClientProviderDirectoryService {
         },
       });
 
-      return providers.map((provider) => {
+      const result = providers.map((provider) => {
         const totalReviews = provider.reviews.length;
 
         const averageRating =
@@ -49,6 +57,9 @@ export class ClientProviderDirectoryService {
           averageRating,
         };
       });
+
+      await this.redis.set(cacheKey, result, 300);
+      return result;
     } catch (error: any) {
       throw new InternalServerErrorException(
         `Failed to retrieve provider records collection: ${error.message}`,
@@ -58,6 +69,10 @@ export class ClientProviderDirectoryService {
 
   async getProviderById(providerId: string) {
     try {
+      const cacheKey = `directory:provider:${providerId}`;
+      const cached = await this.redis.get<any>(cacheKey);
+      if (cached) return cached;
+
       const provider = await this.prisma.providerProfile.findUnique({
         where: { id: providerId },
         include: {
@@ -71,6 +86,8 @@ export class ClientProviderDirectoryService {
           'Requested professional provider profile matching parameters missing',
         );
       }
+
+      await this.redis.set(cacheKey, provider, 300);
       return provider;
     } catch (error: any) {
       if (error instanceof NotFoundException) throw error;
@@ -82,6 +99,10 @@ export class ClientProviderDirectoryService {
 
   async getAllServicesByProvider(providerId: string) {
     try {
+      const cacheKey = `directory:provider:${providerId}:services`;
+      const cached = await this.redis.get<any>(cacheKey);
+      if (cached) return cached;
+
       const provider = await this.prisma.providerProfile.findUnique({
         where: { id: providerId },
       });
@@ -91,10 +112,13 @@ export class ClientProviderDirectoryService {
         );
       }
 
-      return await this.prisma.service.findMany({
+      const services = await this.prisma.service.findMany({
         where: { providerProfileId: providerId },
         orderBy: { createdAt: 'desc' },
       });
+
+      await this.redis.set(cacheKey, services, 300);
+      return services;
     } catch (error: any) {
       if (error instanceof NotFoundException) throw error;
       throw new InternalServerErrorException(
@@ -108,6 +132,10 @@ export class ClientProviderDirectoryService {
     query: GetProviderAvailabilityDto,
   ) {
     try {
+      const cacheKey = `directory:provider:${providerId}:availability:${query.serviceId}:${query.date}`;
+      const cached = await this.redis.get<any>(cacheKey);
+      if (cached) return cached;
+
       const targetDate = new Date(query.date);
       const daysMap = [
         'SUNDAY',
@@ -145,6 +173,7 @@ export class ClientProviderDirectoryService {
         !timetableSetting.fromTime ||
         !timetableSetting.toTime
       ) {
+        await this.redis.set(cacheKey, [], 60);
         return [];
       }
 
@@ -202,6 +231,7 @@ export class ClientProviderDirectoryService {
         scanningPointer += slotDuration;
       }
 
+      await this.redis.set(cacheKey, continuousTimeSlots, 60);
       return continuousTimeSlots;
     } catch (error: any) {
       if (error instanceof NotFoundException) throw error;

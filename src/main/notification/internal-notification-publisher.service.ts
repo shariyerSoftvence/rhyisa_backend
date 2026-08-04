@@ -2,6 +2,7 @@ import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationsGateway } from './notifications.gateway';
 import { RoleType } from '../../../generated/prisma/enums';
+import { RedisService } from '../../common/redis/redis.service';
 
 
 export interface CreateNotificationPayload {
@@ -17,6 +18,7 @@ export class InternalNotificationPublisherService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly gateway: NotificationsGateway,
+    private readonly redis: RedisService,
   ) {}
 
   async publishNotification(payload: CreateNotificationPayload) {
@@ -55,6 +57,15 @@ export class InternalNotificationPublisherService {
         data: relationalLinks,
         skipDuplicates: true,
       });
+
+      // Clear cache for targeted users
+      const redisClient = this.redis.getClient();
+      for (const userId of targets) {
+        const keys = await redisClient.keys(`notifications:user:${userId}:*`);
+        if (keys.length > 0) {
+          await redisClient.del(...keys);
+        }
+      }
 
       // Push transactional parameters cleanly downstream over channels
       const eventPayload = {

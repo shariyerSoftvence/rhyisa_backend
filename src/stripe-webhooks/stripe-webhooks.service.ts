@@ -8,6 +8,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { InternalNotificationPublisherService } from '../main/notification/internal-notification-publisher.service';
 import Stripe from 'stripe';
 import { SubscriptionType } from '../../generated/prisma/enums';
+import { RedisService } from '../common/redis/redis.service';
 
 @Injectable()
 export class StripeWebhooksService {
@@ -17,6 +18,7 @@ export class StripeWebhooksService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notificationPublisher: InternalNotificationPublisherService,
+    private readonly redis: RedisService,
   ) {
     this.stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
       apiVersion: '2024-12-18.acacia' as any,
@@ -171,6 +173,28 @@ export class StripeWebhooksService {
           where: { id: providerId },
           select: { id: true },
         });
+
+        const userAuth = await tx.userProfile.findUnique({
+          where: { id: userId },
+          select: { authId: true },
+        });
+
+        const providerAuth = await tx.providerProfile.findUnique({
+          where: { id: providerId },
+          select: { authId: true },
+        });
+
+        if (userAuth?.authId) {
+          await this.redis.del(`booking:client:${userAuth.authId}`);
+        }
+        if (providerAuth?.authId) {
+          await this.redis.del(`booking:provider:${providerAuth.authId}`);
+        }
+        const redisClient = this.redis.getClient();
+        const availKeys = await redisClient.keys(`directory:provider:${providerId}:availability:*`);
+        if (availKeys.length > 0) {
+          await redisClient.del(...availKeys);
+        }
 
         if (provider) {
           await this.notificationPublisher.publishNotification({

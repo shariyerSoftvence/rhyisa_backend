@@ -297,6 +297,10 @@ export class AuthService {
 
   async getMe(userId: string) {
     try {
+      const cacheKey = `auth:me:${userId}`;
+      const cachedUser = await this.redis.get<any>(cacheKey);
+      if (cachedUser) return cachedUser;
+
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
@@ -334,6 +338,8 @@ export class AuthService {
       });
 
       if (!user) throw new UnauthorizedException('User not found');
+
+      await this.redis.set(cacheKey, user, 300);
       return user;
     } catch (error: any) {
       this.logger.error(`Get profile failed: ${error.message}`);

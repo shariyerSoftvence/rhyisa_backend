@@ -6,10 +6,16 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateServiceDto, UpdateServiceDto } from './dto/service.dto';
+import { RedisService } from '../../common/redis/redis.service';
 
 @Injectable()
 export class ProviderServiceManagementService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly CACHE_TTL = 300;
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly redis: RedisService,
+  ) {}
 
   private async getProviderProfileOrThrow(authId: string) {
     const profile = await this.prisma.providerProfile.findUnique({
@@ -27,7 +33,7 @@ export class ProviderServiceManagementService {
     try {
       const profile = await this.getProviderProfileOrThrow(authId);
 
-      return await this.prisma.service.create({
+      const created = await this.prisma.service.create({
         data: {
           name: dto.name,
           price: dto.price,
@@ -35,6 +41,11 @@ export class ProviderServiceManagementService {
           providerProfileId: profile.id,
         },
       });
+
+      await this.redis.del(`services:provider:${authId}`);
+      await this.redis.del(`directory:provider:${profile.id}:services`);
+
+      return created;
     } catch (error) {
       if (error instanceof NotFoundException) throw error;
       throw new InternalServerErrorException(
@@ -45,12 +56,19 @@ export class ProviderServiceManagementService {
 
   async getAllProviderService(authId: string) {
     try {
+      const cacheKey = `services:provider:${authId}`;
+      const cached = await this.redis.get<any>(cacheKey);
+      if (cached) return cached;
+
       const profile = await this.getProviderProfileOrThrow(authId);
 
-      return await this.prisma.service.findMany({
+      const services = await this.prisma.service.findMany({
         where: { providerProfileId: profile.id },
         orderBy: { createdAt: 'desc' },
       });
+
+      await this.redis.set(cacheKey, services, this.CACHE_TTL);
+      return services;
     } catch (error) {
       if (error instanceof NotFoundException) throw error;
       throw new InternalServerErrorException(
@@ -61,6 +79,10 @@ export class ProviderServiceManagementService {
 
   async getProviderServiceById(authId: string, serviceId: string) {
     try {
+      const cacheKey = `services:id:${serviceId}`;
+      const cached = await this.redis.get<any>(cacheKey);
+      if (cached) return cached;
+
       const profile = await this.getProviderProfileOrThrow(authId);
 
       const service = await this.prisma.service.findUnique({
@@ -73,6 +95,7 @@ export class ProviderServiceManagementService {
         );
       }
 
+      await this.redis.set(cacheKey, service, this.CACHE_TTL);
       return service;
     } catch (error) {
       if (error instanceof NotFoundException) throw error;
@@ -100,10 +123,16 @@ export class ProviderServiceManagementService {
         );
       }
 
-      return await this.prisma.service.update({
+      const updated = await this.prisma.service.update({
         where: { id: serviceId },
         data: dto,
       });
+
+      await this.redis.del(`services:id:${serviceId}`);
+      await this.redis.del(`services:provider:${authId}`);
+      await this.redis.del(`directory:provider:${profile.id}:services`);
+
+      return updated;
     } catch (error) {
       if (error instanceof NotFoundException) throw error;
       throw new InternalServerErrorException(
@@ -129,6 +158,10 @@ export class ProviderServiceManagementService {
       await this.prisma.service.delete({
         where: { id: serviceId },
       });
+
+      await this.redis.del(`services:id:${serviceId}`);
+      await this.redis.del(`services:provider:${authId}`);
+      await this.redis.del(`directory:provider:${profile.id}:services`);
 
       return {
         message:

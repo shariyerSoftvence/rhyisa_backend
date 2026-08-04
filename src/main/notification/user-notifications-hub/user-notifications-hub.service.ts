@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, InternalServerErrorException } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { RedisService } from '../../../common/redis/redis.service';
 
 export class NotificationQueryDto {
   page?: number;
@@ -8,12 +9,29 @@ export class NotificationQueryDto {
 
 @Injectable()
 export class UserNotificationsHubService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly CACHE_TTL = 60;
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly redis: RedisService,
+  ) {}
+
+  private async clearUserNotificationCaches(userId: string) {
+    const client = this.redis.getClient();
+    const keys = await client.keys(`notifications:user:${userId}:*`);
+    if (keys.length > 0) {
+      await client.del(...keys);
+    }
+  }
 
   async getAllNotifications(userId: string, query: NotificationQueryDto) {
     try {
       const page = Number(query.page) || 1;
       const limit = Number(query.limit) || 20;
+      const cacheKey = `notifications:user:${userId}:page_${page}_limit_${limit}`;
+      const cached = await this.redis.get<any>(cacheKey);
+      if (cached) return cached;
+
       const skip = (page - 1) * limit;
 
       const [totalCount, userNotifications] = await this.prisma.$transaction([
@@ -37,7 +55,7 @@ export class UserNotificationsHubService {
         createdAt: un.notification.createdAt,
       }));
 
-      return {
+      const result = {
         success: true,
         meta: {
           totalCount,
@@ -47,6 +65,9 @@ export class UserNotificationsHubService {
         },
         data: flattenedNotifications,
       };
+
+      await this.redis.set(cacheKey, result, this.CACHE_TTL);
+      return result;
     } catch (error: any) {
       throw new InternalServerErrorException(
         `Failed to recover notification history feed: ${error.message}`,
@@ -56,6 +77,10 @@ export class UserNotificationsHubService {
 
   async getSingleNotification(userId: string, id: string) {
     try {
+      const cacheKey = `notifications:id:${id}`;
+      const cached = await this.redis.get<any>(cacheKey);
+      if (cached) return cached;
+
       const userNotification = await this.prisma.userNotification.findFirst({
         where: { id, userId },
         include: { notification: true },
@@ -67,7 +92,7 @@ export class UserNotificationsHubService {
         );
       }
 
-      return {
+      const result = {
         success: true,
         data: {
           id: userNotification.id,
@@ -79,6 +104,9 @@ export class UserNotificationsHubService {
           createdAt: userNotification.notification.createdAt,
         },
       };
+
+      await this.redis.set(cacheKey, result, this.CACHE_TTL);
+      return result;
     } catch (error: any) {
       if (error instanceof NotFoundException) throw error;
       throw new InternalServerErrorException(
@@ -105,6 +133,9 @@ export class UserNotificationsHubService {
         include: { notification: true },
       });
 
+      await this.redis.del(`notifications:id:${id}`);
+      await this.clearUserNotificationCaches(userId);
+
       return {
         success: true,
         data: {
@@ -126,6 +157,8 @@ export class UserNotificationsHubService {
         where: { userId, read: false },
         data: { read: true },
       });
+
+      await this.clearUserNotificationCaches(userId);
 
       return {
         success: true,

@@ -6,12 +6,18 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import Stripe from 'stripe';
+import { RedisService } from '../../common/redis/redis.service';
 
 @Injectable()
 export class SubscriptionService {
   private readonly stripe: any;
+  private readonly CACHE_KEY = 'subscriptions:plans:all';
+  private readonly CACHE_TTL = 600;
 
-  constructor(private readonly prisma: PrismaService) {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly redis: RedisService,
+  ) {
     this.stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
       apiVersion: '2024-12-18.acacia' as any,
     });
@@ -19,9 +25,15 @@ export class SubscriptionService {
 
   async getAllAvailablePlans() {
     try {
-      return await this.prisma.subscriptionPlan.findMany({
+      const cached = await this.redis.get<any>(this.CACHE_KEY);
+      if (cached) return cached;
+
+      const plans = await this.prisma.subscriptionPlan.findMany({
         orderBy: { price: 'asc' },
       });
+
+      await this.redis.set(this.CACHE_KEY, plans, this.CACHE_TTL);
+      return plans;
     } catch (error: any) {
       throw new InternalServerErrorException(
         `Failed to retrieve premium tier items: ${error.message}`,

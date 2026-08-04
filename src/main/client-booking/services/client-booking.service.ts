@@ -10,12 +10,16 @@ import {
   RescheduleBookingDto,
 } from '../dto/client-booking.dto';
 import Stripe from 'stripe';
+import { RedisService } from '../../../common/redis/redis.service';
 
 @Injectable()
 export class ClientBookingService {
   private readonly stripe: any;
 
-  constructor(private readonly prisma: PrismaService) {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly redis: RedisService,
+  ) {
     this.stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
       apiVersion: '2024-12-18.acacia' as any,
     });
@@ -347,7 +351,7 @@ export class ClientBookingService {
         );
       }
 
-      return await this.prisma.booking.update({
+      const updatedBooking = await this.prisma.booking.update({
         where: { id: bookingId },
         data: {
           bookingDate: new Date(dto.bookingDate),
@@ -355,6 +359,14 @@ export class ClientBookingService {
           endTime: computedEndTimeStr,
         },
       });
+
+      await this.redis.del(`booking:id:${bookingId}`);
+      await this.redis.del(`booking:client:${authId}`);
+      const client = this.redis.getClient();
+      const availKeys = await client.keys(`directory:provider:${booking.providerId}:availability:*`);
+      if (availKeys.length > 0) await client.del(...availKeys);
+
+      return updatedBooking;
     } catch (error: any) {
       if (
         error instanceof NotFoundException ||
@@ -395,11 +407,21 @@ export class ClientBookingService {
         );
       }
 
+      const clearBookingCaches = async () => {
+        await this.redis.del(`booking:id:${bookingId}`);
+        await this.redis.del(`booking:client:${authId}`);
+        const redisClient = this.redis.getClient();
+        const availKeys = await redisClient.keys(`directory:provider:${booking.providerId}:availability:*`);
+        if (availKeys.length > 0) await redisClient.del(...availKeys);
+      };
+
       if (!booking.payment || booking.payment.status !== 'SUCCESSFUL') {
-        return await this.prisma.booking.update({
+        const cancelledBooking = await this.prisma.booking.update({
           where: { id: bookingId },
           data: { status: 'CANCELLED' },
         });
+        await clearBookingCaches();
+        return cancelledBooking;
       }
 
       const paymentIntentSession = await this.stripe.checkout.sessions.retrieve(
@@ -418,7 +440,7 @@ export class ClientBookingService {
         payment_intent: originalPaymentIntentId,
       });
 
-      return await this.prisma.$transaction(async (tx) => {
+      const result = await this.prisma.$transaction(async (tx) => {
         const updatedBooking = await tx.booking.update({
           where: { id: bookingId },
           data: { status: 'CANCELLED' },
@@ -435,6 +457,9 @@ export class ClientBookingService {
           booking: updatedBooking,
         };
       });
+
+      await clearBookingCaches();
+      return result;
     } catch (error: any) {
       if (
         error instanceof NotFoundException ||

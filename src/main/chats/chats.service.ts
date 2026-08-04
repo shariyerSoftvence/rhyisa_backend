@@ -4,14 +4,18 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { LiveChat } from '../../../generated/prisma/client';
+// import { LiveChat } from '../../../generated/prisma/client';
 import { HandleError } from '../../common/error/handle-error.decorator';
 import { CreateMessageDto } from './dto/chats.dto';
 import { RoleType } from '../../../generated/prisma/enums';
+import { RedisService } from '../../common/redis/redis.service';
 
 @Injectable()
 export class chatsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private redis: RedisService,
+  ) {}
 
   private get client() {
     return this.prisma;
@@ -321,6 +325,12 @@ export class chatsService {
       },
     });
 
+    await this.redis.del(`chats:messages:${chatId}`);
+    for (const p of message.chat.participants) {
+      await this.redis.del(`chats:user:${p.userId}`);
+      await this.redis.del(`chats:unread:${chatId}:${p.userId}`);
+    }
+
     return {
       ...message,
       sender: this.mapUser(message.sender),
@@ -348,7 +358,7 @@ export class chatsService {
       throw new ForbiddenException('You are not a participant in this chat');
     }
 
-    return this.client.liveMessageRead.upsert({
+    const res = await this.client.liveMessageRead.upsert({
       where: { messageId_userId: { messageId, userId } },
       create: {
         messageId,
@@ -357,11 +367,19 @@ export class chatsService {
       },
       update: { readAt: new Date() },
     });
+
+    await this.redis.del(`chats:user:${userId}`);
+    await this.redis.del(`chats:unread:${message.chatId}:${userId}`);
+    return res;
   }
 
   /** List my private chats with last message & unread count */
   @HandleError('Failed to get my chats', 'chat')
   async getMyChats(userId: string) {
+    const cacheKey = `chats:user:${userId}`;
+    const cached = await this.redis.get<any>(cacheKey);
+    if (cached) return cached;
+
     const userSelect = {
       id: true,
       email: true,
@@ -418,7 +436,7 @@ export class chatsService {
 
     const mappedChats = chats.map((chat) => this.mapChat(chat));
 
-    return Promise.all(
+    const result = await Promise.all(
       mappedChats.map(async (chat: any) => {
         const unreadCount = await this.client.liveMessage.count({
           where: {
@@ -440,6 +458,9 @@ export class chatsService {
         };
       }),
     );
+
+    await this.redis.set(cacheKey, result, 60);
+    return result;
   }
 
   /** Get paginated messages for a chat */
@@ -459,6 +480,10 @@ export class chatsService {
     if (!isParticipant) {
       throw new ForbiddenException('You are not a participant in this chat');
     }
+
+    const cacheKey = `chats:messages:${chatId}`;
+    const cachedMessages = await this.redis.get<any>(cacheKey);
+    if (cachedMessages) return cachedMessages;
 
     const userSelect = {
       id: true,
@@ -504,14 +529,21 @@ export class chatsService {
 
     const mappedMessages = messages.map((m) => this.mapMessage(m));
 
-    return {
+    const response = {
       messages: mappedMessages,
     };
+
+    await this.redis.set(cacheKey, response, 60);
+    return response;
   }
 
   /** Get unread message count for a specific chat */
   @HandleError('Failed to get unread message count', 'chat')
   async getUnreadCount(chatId: string, userId: string) {
+    const cacheKey = `chats:unread:${chatId}:${userId}`;
+    const cachedCount = await this.redis.get<any>(cacheKey);
+    if (cachedCount) return cachedCount;
+
     const count = await this.client.liveMessage.count({
       where: {
         chatId,
@@ -520,6 +552,8 @@ export class chatsService {
       },
     });
 
-    return { chatId, unreadCount: count };
+    const result = { chatId, unreadCount: count };
+    await this.redis.set(cacheKey, result, 60);
+    return result;
   }
 }

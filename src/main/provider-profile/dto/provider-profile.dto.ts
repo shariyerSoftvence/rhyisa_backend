@@ -6,11 +6,11 @@ import {
   IsEnum,
   IsArray,
   IsBoolean,
-  IsObject,
-  ValidateNested,
+  // IsObject,
+  // ValidateNested,
 } from 'class-validator';
 import { DayOfWeek } from '../../../../generated/prisma/enums';
-import { Type } from 'class-transformer';
+// import { Type } from 'class-transformer';
 
 export class CreateProviderProfileDto {
   @ApiProperty({ example: 'Dhaka, Bangladesh' })

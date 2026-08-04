@@ -1,10 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CallStatus } from '../../../generated/prisma/enums';
+import { RedisService } from '../../common/redis/redis.service';
 
 @Injectable()
 export class RealTimeCallService {
-  constructor(private prisma: PrismaService) {}
+  private readonly CACHE_PREFIX = 'call:status:';
+  private readonly CACHE_TTL = 30;
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly redis: RedisService,
+  ) {}
 
   async createCall(
     hostUserId: string,
@@ -21,41 +28,55 @@ export class RealTimeCallService {
   }
 
   async markRinging(callId: string) {
-    return this.prisma.calling.update({
+    const updated = await this.prisma.calling.update({
       where: { id: callId },
       data: { status: CallStatus.RINING, startedAt: new Date() },
     });
+    await this.redis.del(`${this.CACHE_PREFIX}${callId}`);
+    return updated;
   }
 
   async markActive(callId: string) {
-    return this.prisma.calling.update({
+    const updated = await this.prisma.calling.update({
       where: { id: callId },
       data: { status: CallStatus.ACTIVE, startedAt: new Date() },
     });
+    await this.redis.del(`${this.CACHE_PREFIX}${callId}`);
+    return updated;
   }
 
   async markDeclined(callId: string) {
-    return this.prisma.calling.update({
+    const updated = await this.prisma.calling.update({
       where: { id: callId },
       data: { status: CallStatus.DECLINED, endedAt: new Date() },
     });
+    await this.redis.del(`${this.CACHE_PREFIX}${callId}`);
+    return updated;
   }
 
   async markMissed(callId: string) {
-    return this.prisma.calling.update({
+    const updated = await this.prisma.calling.update({
       where: { id: callId },
       data: { status: CallStatus.MISSED, endedAt: new Date() },
     });
+    await this.redis.del(`${this.CACHE_PREFIX}${callId}`);
+    return updated;
   }
 
   async endCall(callId: string) {
-    return this.prisma.calling.update({
+    const updated = await this.prisma.calling.update({
       where: { id: callId },
       data: { status: CallStatus.END, endedAt: new Date() },
     });
+    await this.redis.del(`${this.CACHE_PREFIX}${callId}`);
+    return updated;
   }
 
   async getCallStatus(callId: string) {
+    const cacheKey = `${this.CACHE_PREFIX}${callId}`;
+    const cached = await this.redis.get<any>(cacheKey);
+    if (cached) return cached;
+
     const call = await this.prisma.calling.findUnique({
       where: { id: callId },
       select: {
@@ -73,6 +94,7 @@ export class RealTimeCallService {
       throw new Error('Call not found');
     }
 
+    await this.redis.set(cacheKey, call, this.CACHE_TTL);
     return call;
   }
 }

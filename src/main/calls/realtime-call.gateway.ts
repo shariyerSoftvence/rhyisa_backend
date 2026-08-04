@@ -49,15 +49,16 @@ export class RealTimeCallGateway
       return;
     }
 
+    await client.join(`user:${userId}`);
     this.users.set(userId, client.id);
-    this.logger.log(`User connected: ${userId}, socket: ${client.id}`);
+    this.logger.log(`User connected to call gateway: ${userId}, socket: ${client.id}`);
   }
 
   handleDisconnect(client: Socket) {
     const userId = client.data?.userId || client.data?.user?.id;
     if (userId) {
       this.users.delete(userId);
-      this.logger.log(`User disconnected: ${userId}`);
+      this.logger.log(`User disconnected from call gateway: ${userId}`);
     }
   }
 
@@ -75,26 +76,30 @@ export class RealTimeCallGateway
       data.recipientUserId,
       data.title,
     );
-    const hostSocket = this.users.get(data.hostUserId);
-    const receiverSocket = this.users.get(data.recipientUserId);
 
-    if (hostSocket) {
-      this.server.to(hostSocket).emit('call-started', {
-        callId: call.id,
-        to: data.recipientUserId,
-        title: data.title,
-      });
-    }
+    // Emit to host room
+    this.server.to(`user:${data.hostUserId}`).emit('call-started', {
+      callId: call.id,
+      to: data.recipientUserId,
+      title: data.title,
+    });
 
-    if (receiverSocket) {
+    // Check if recipient is in room or online
+    const recipientSockets = await this.server.in(`user:${data.recipientUserId}`).fetchSockets();
+
+    if (recipientSockets.length > 0) {
       await this.callService.markRinging(call.id);
-      this.server.to(receiverSocket).emit('incoming-call', {
+      this.server.to(`user:${data.recipientUserId}`).emit('incoming-call', {
         callId: call.id,
         from: data.hostUserId,
         title: data.title,
       });
     } else {
       await this.callService.markMissed(call.id);
+      this.server.to(`user:${data.hostUserId}`).emit('call-missed', {
+        callId: call.id,
+        recipientUserId: data.recipientUserId,
+      });
     }
 
     return call;
@@ -106,20 +111,19 @@ export class RealTimeCallGateway
     @MessageBody() data: { callId: string; callerId: string },
   ) {
     await this.callService.markActive(data.callId);
-
-    const callerSocket = this.users.get(data.callerId);
-
-    if (callerSocket) {
-      this.server.to(callerSocket).emit('call-active', {
-        callId: data.callId,
-      });
-    }
+    this.server.to(`user:${data.callerId}`).emit('call-active', {
+      callId: data.callId,
+    });
   }
 
   @SubscribeMessage('decline-call')
-  async declineCall(@MessageBody() data: { callId: string }) {
+  async declineCall(@MessageBody() data: { callId: string; callerId?: string }) {
     await this.callService.markDeclined(data.callId);
-    this.server.emit('call-declined', { callId: data.callId });
+    if (data.callerId) {
+      this.server.to(`user:${data.callerId}`).emit('call-declined', { callId: data.callId });
+    } else {
+      this.server.emit('call-declined', { callId: data.callId });
+    }
   }
 
   @SubscribeMessage('end-call')
@@ -133,18 +137,8 @@ export class RealTimeCallGateway
   ) {
     await this.callService.endCall(data.callId);
 
-    const callerSocket = this.users.get(data.callerId);
-    const receiverSocket = this.users.get(data.receiverId);
-
-    if (callerSocket) {
-      this.server.to(callerSocket).emit('call-ended', { callId: data.callId });
-    }
-
-    if (receiverSocket) {
-      this.server
-        .to(receiverSocket)
-        .emit('call-ended', { callId: data.callId });
-    }
+    this.server.to(`user:${data.callerId}`).emit('call-ended', { callId: data.callId });
+    this.server.to(`user:${data.receiverId}`).emit('call-ended', { callId: data.callId });
   }
 
   //  WebRTC Signaling
@@ -153,26 +147,20 @@ export class RealTimeCallGateway
   handleOffer(
     @MessageBody() data: { roomId: string; offer: any; receiverId: string },
   ) {
-    const receiverSocket = this.users.get(data.receiverId);
-    if (receiverSocket) {
-      this.server.to(receiverSocket).emit('webrtc-offer', {
-        roomId: data.roomId,
-        offer: data.offer,
-      });
-    }
+    this.server.to(`user:${data.receiverId}`).emit('webrtc-offer', {
+      roomId: data.roomId,
+      offer: data.offer,
+    });
   }
 
   @SubscribeMessage('webrtc-answer')
   handleAnswer(
     @MessageBody() data: { roomId: string; answer: any; callerId: string },
   ) {
-    const callerSocket = this.users.get(data.callerId);
-    if (callerSocket) {
-      this.server.to(callerSocket).emit('webrtc-answer', {
-        roomId: data.roomId,
-        answer: data.answer,
-      });
-    }
+    this.server.to(`user:${data.callerId}`).emit('webrtc-answer', {
+      roomId: data.roomId,
+      answer: data.answer,
+    });
   }
 
   @SubscribeMessage('ice-candidate')
@@ -184,12 +172,9 @@ export class RealTimeCallGateway
       targetUserId: string;
     },
   ) {
-    const targetSocket = this.users.get(data.targetUserId);
-    if (targetSocket) {
-      this.server.to(targetSocket).emit('ice-candidate', {
-        roomId: data.roomId,
-        candidate: data.candidate,
-      });
-    }
+    this.server.to(`user:${data.targetUserId}`).emit('ice-candidate', {
+      roomId: data.roomId,
+      candidate: data.candidate,
+    });
   }
 }

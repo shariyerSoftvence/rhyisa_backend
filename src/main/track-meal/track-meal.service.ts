@@ -163,6 +163,8 @@ export class TrackMealService {
 
       // Clear the temporary Redis session record clean
       await this.redisService.del(cacheKey);
+      await this.redisService.del(`health:today:${authId}`);
+      await this.redisService.del(`health:history30:${authId}`);
 
       return {
         success: true,

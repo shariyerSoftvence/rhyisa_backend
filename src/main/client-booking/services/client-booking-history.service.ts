@@ -4,13 +4,23 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { RedisService } from '../../../common/redis/redis.service';
 
 @Injectable()
 export class ClientBookingHistoryService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly CACHE_TTL = 120;
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly redis: RedisService,
+  ) {}
 
   async getClientBookings(authId: string) {
     try {
+      const cacheKey = `booking:client:${authId}`;
+      const cached = await this.redis.get<any>(cacheKey);
+      if (cached) return cached;
+
       const userProfile = await this.prisma.userProfile.findUnique({
         where: { authId },
       });
@@ -20,7 +30,7 @@ export class ClientBookingHistoryService {
         );
       }
 
-      return await this.prisma.booking.findMany({
+      const bookings = await this.prisma.booking.findMany({
         where: { userId: userProfile.id },
         include: {
           service: true,
@@ -35,6 +45,9 @@ export class ClientBookingHistoryService {
         },
         orderBy: { bookingDate: 'desc' },
       });
+
+      await this.redis.set(cacheKey, bookings, this.CACHE_TTL);
+      return bookings;
     } catch (error: any) {
       if (error instanceof NotFoundException) throw error;
       throw new InternalServerErrorException(
@@ -45,6 +58,10 @@ export class ClientBookingHistoryService {
 
   async getClientBookingById(authId: string, bookingId: string) {
     try {
+      const cacheKey = `booking:id:${bookingId}`;
+      const cached = await this.redis.get<any>(cacheKey);
+      if (cached) return cached;
+
       const userProfile = await this.prisma.userProfile.findUnique({
         where: { authId },
       });
@@ -69,6 +86,7 @@ export class ClientBookingHistoryService {
         );
       }
 
+      await this.redis.set(cacheKey, booking, this.CACHE_TTL);
       return booking;
     } catch (error: any) {
       if (error instanceof NotFoundException) throw error;

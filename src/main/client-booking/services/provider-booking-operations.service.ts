@@ -6,10 +6,16 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { UpdateBookingStatusDto } from '../dto/booking-status-update.dto';
+import { RedisService } from '../../../common/redis/redis.service';
 
 @Injectable()
 export class ProviderBookingOperationsService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly CACHE_TTL = 120;
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly redis: RedisService,
+  ) {}
 
   private async getProviderProfileOrThrow(authId: string) {
     const profile = await this.prisma.providerProfile.findUnique({
@@ -25,9 +31,13 @@ export class ProviderBookingOperationsService {
 
   async getProviderBookings(authId: string) {
     try {
+      const cacheKey = `booking:provider:${authId}`;
+      const cached = await this.redis.get<any>(cacheKey);
+      if (cached) return cached;
+
       const profile = await this.getProviderProfileOrThrow(authId);
 
-      return await this.prisma.booking.findMany({
+      const bookings = await this.prisma.booking.findMany({
         where: { providerId: profile.id },
         include: {
           service: true,
@@ -42,6 +52,9 @@ export class ProviderBookingOperationsService {
         },
         orderBy: { bookingDate: 'desc' },
       });
+
+      await this.redis.set(cacheKey, bookings, this.CACHE_TTL);
+      return bookings;
     } catch (error: any) {
       if (error instanceof NotFoundException) throw error;
       throw new InternalServerErrorException(
@@ -52,6 +65,10 @@ export class ProviderBookingOperationsService {
 
   async getProviderBookingById(authId: string, bookingId: string) {
     try {
+      const cacheKey = `booking:id:${bookingId}`;
+      const cached = await this.redis.get<any>(cacheKey);
+      if (cached) return cached;
+
       const profile = await this.getProviderProfileOrThrow(authId);
 
       const booking = await this.prisma.booking.findUnique({
@@ -69,6 +86,7 @@ export class ProviderBookingOperationsService {
         );
       }
 
+      await this.redis.set(cacheKey, booking, this.CACHE_TTL);
       return booking;
     } catch (error: any) {
       if (error instanceof NotFoundException) throw error;
@@ -88,6 +106,7 @@ export class ProviderBookingOperationsService {
 
       const booking = await this.prisma.booking.findUnique({
         where: { id: bookingId },
+        include: { user: { select: { authId: true } } },
       });
 
       if (!booking || booking.providerId !== profile.id) {
@@ -102,10 +121,18 @@ export class ProviderBookingOperationsService {
         );
       }
 
-      return await this.prisma.booking.update({
+      const updated = await this.prisma.booking.update({
         where: { id: bookingId },
         data: { status: dto.status },
       });
+
+      await this.redis.del(`booking:id:${bookingId}`);
+      await this.redis.del(`booking:provider:${authId}`);
+      if (booking.user?.authId) {
+        await this.redis.del(`booking:client:${booking.user.authId}`);
+      }
+
+      return updated;
     } catch (error: any) {
       if (
         error instanceof NotFoundException ||

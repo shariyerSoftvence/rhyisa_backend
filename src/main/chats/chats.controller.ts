@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, Post, UseGuards, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  UseGuards,
+  Req,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CreateMessageDto, StartChatsDto } from './dto/chats.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -13,10 +21,7 @@ export class ChatsController {
 
   @Post('start')
   @ApiOperation({ summary: 'Start or get a 1-to-1 chat' })
-  async startChat(
-    @Req() req: any,
-    @Body() dto: StartChatsDto,
-  ) {
+  async startChat(@Req() req: any, @Body() dto: StartChatsDto) {
     const userId = req.user.id;
     return this.chatService.getOrCreatePrivateChat(userId, dto.otherUserId);
   }
@@ -30,10 +35,7 @@ export class ChatsController {
 
   @Get(':chatId/messages')
   @ApiOperation({ summary: 'Get messages for a chat' })
-  async getMessages(
-    @Req() req: any,
-    @Param('chatId') chatId: string,
-  ) {
+  async getMessages(@Req() req: any, @Param('chatId') chatId: string) {
     const userId = req.user.id;
     // Verification happens inside service
     return this.chatService.getMessages(chatId, userId);
@@ -52,10 +54,7 @@ export class ChatsController {
 
   @Get(':chatId/unread')
   @ApiOperation({ summary: 'Get unread message count for a chat' })
-  async getUnreadCount(
-    @Req() req: any,
-    @Param('chatId') chatId: string,
-  ) {
+  async getUnreadCount(@Req() req: any, @Param('chatId') chatId: string) {
     const userId = req.user.id;
     return this.chatService.getUnreadCount(chatId, userId);
   }

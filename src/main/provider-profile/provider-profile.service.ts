@@ -19,6 +19,7 @@ import {
 import Stripe from 'stripe';
 import { UploadFilesService } from '../../common/upload-files/upload-files.service';
 import { StripeConnectLinkDto } from './dto/stripe-onboarding.dto';
+import { RedisService } from '../../common/redis/redis.service';
 
 @Injectable()
 export class ProviderProfileService {
@@ -27,6 +28,7 @@ export class ProviderProfileService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly uploadFilesService: UploadFilesService,
+    private readonly redis: RedisService,
   ) {
     this.stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
       apiVersion: '2024-12-18.acacia' as any,
@@ -203,7 +205,7 @@ export class ProviderProfileService {
           return { day, fromTime: '09:00', toTime: '22:00', isOff: false };
         });
 
-        return await tx.providerProfile.create({
+        const newProfile = await tx.providerProfile.create({
           data: {
             authId,
             location: dto.location,
@@ -233,6 +235,9 @@ export class ProviderProfileService {
             specialization: true,
           },
         });
+
+        await this.clearProviderCaches(authId, newProfile.id);
+        return newProfile;
       });
     } catch (error: any) {
       if (
@@ -395,7 +400,7 @@ export class ProviderProfileService {
           updateData.additionalCertificateId = newAddCert.id;
         }
 
-        return await tx.providerProfile.update({
+        const updatedProfile = await tx.providerProfile.update({
           where: { authId },
           data: updateData,
           include: {
@@ -408,6 +413,9 @@ export class ProviderProfileService {
             specialization: true,
           },
         });
+
+        await this.clearProviderCaches(authId, updatedProfile.id);
+        return updatedProfile;
       });
     } catch (error: any) {
       if (error instanceof NotFoundException) throw error;
@@ -453,6 +461,8 @@ export class ProviderProfileService {
         ),
       );
 
+      await this.clearProviderCaches(authId, profile.id);
+
       return {
         message:
           'Provider working schedule operational metrics availability profile matrices updated successfully',
@@ -462,6 +472,22 @@ export class ProviderProfileService {
       throw new InternalServerErrorException(
         'Failed to process matrix settings options overwrite updates layout matching active timetable',
       );
+    }
+  }
+
+  private async clearProviderCaches(authId: string, providerId?: string) {
+    await this.redis.del(`auth:me:${authId}`);
+    await this.redis.del(`provider:id:${authId}`);
+    await this.redis.del('directory:providers:all');
+    await this.redis.del(`providers:list:page_1_limit_10`);
+    if (providerId) {
+      await this.redis.del(`directory:provider:${providerId}`);
+      await this.redis.del(`directory:provider:${providerId}:services`);
+      const client = this.redis.getClient();
+      const keys = await client.keys(`directory:provider:${providerId}:availability:*`);
+      if (keys.length > 0) {
+        await client.del(...keys);
+      }
     }
   }
 

@@ -7,10 +7,16 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateReviewDto } from './dto/client-review.dto';
+import { RedisService } from '../../common/redis/redis.service';
 
 @Injectable()
 export class FeedbackReviewsService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly CACHE_TTL = 300;
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly redis: RedisService,
+  ) {}
 
   private calculateDetailedRatingSummary(reviewsList: any[]) {
     if (!reviewsList || reviewsList.length === 0) {
@@ -91,6 +97,10 @@ export class FeedbackReviewsService {
 
   async getProviderReviewsPublic(providerId: string) {
     try {
+      const cacheKey = `reviews:provider:${providerId}:public`;
+      const cached = await this.redis.get<any>(cacheKey);
+      if (cached) return cached;
+
       const providerExists = await this.prisma.providerProfile.findUnique({
         where: { id: providerId },
       });
@@ -117,10 +127,13 @@ export class FeedbackReviewsService {
       const structuralMetricsSummary =
         this.calculateDetailedRatingSummary(reviewsCollection);
 
-      return {
+      const result = {
         overallRatingSummary: structuralMetricsSummary,
         reviews: reviewsCollection,
       };
+
+      await this.redis.set(cacheKey, result, this.CACHE_TTL);
+      return result;
     } catch (error: any) {
       if (error instanceof NotFoundException) throw error;
       throw new InternalServerErrorException(
@@ -142,6 +155,7 @@ export class FeedbackReviewsService {
 
       const targetBooking = await this.prisma.booking.findUnique({
         where: { id: dto.bookingId },
+        include: { provider: true },
       });
       if (!targetBooking || targetBooking.userId !== userProfile.id) {
         throw new NotFoundException(
@@ -164,7 +178,7 @@ export class FeedbackReviewsService {
         );
       }
 
-      return await this.prisma.review.create({
+      const newReview = await this.prisma.review.create({
         data: {
           rating: dto.rating,
           comment: dto.comment,
@@ -173,6 +187,15 @@ export class FeedbackReviewsService {
           bookingId: dto.bookingId,
         },
       });
+
+      await this.redis.del(`reviews:provider:${targetBooking.providerId}:public`);
+      if (targetBooking.provider?.authId) {
+        await this.redis.del(`reviews:provider:${targetBooking.provider.authId}:own`);
+      }
+      await this.redis.del(`directory:provider:${targetBooking.providerId}`);
+      await this.redis.del('directory:providers:all');
+
+      return newReview;
     } catch (error: any) {
       if (
         error instanceof NotFoundException ||
@@ -189,6 +212,10 @@ export class FeedbackReviewsService {
 
   async getProviderOwnReviews(authId: string) {
     try {
+      const cacheKey = `reviews:provider:${authId}:own`;
+      const cached = await this.redis.get<any>(cacheKey);
+      if (cached) return cached;
+
       const professionalProfile = await this.prisma.providerProfile.findUnique({
         where: { authId },
       });
@@ -222,10 +249,13 @@ export class FeedbackReviewsService {
       const profileCalculations =
         this.calculateDetailedRatingSummary(internalReviewsList);
 
-      return {
+      const result = {
         overallRatingSummary: profileCalculations,
         reviews: internalReviewsList,
       };
+
+      await this.redis.set(cacheKey, result, this.CACHE_TTL);
+      return result;
     } catch (error: any) {
       if (error instanceof NotFoundException) throw error;
       throw new InternalServerErrorException(
@@ -236,6 +266,10 @@ export class FeedbackReviewsService {
 
   async getReviewDetailsById(reviewId: string) {
     try {
+      const cacheKey = `reviews:id:${reviewId}`;
+      const cached = await this.redis.get<any>(cacheKey);
+      if (cached) return cached;
+
       const specificReviewItem = await this.prisma.review.findUnique({
         where: { id: reviewId },
         include: {
@@ -256,6 +290,7 @@ export class FeedbackReviewsService {
         );
       }
 
+      await this.redis.set(cacheKey, specificReviewItem, this.CACHE_TTL);
       return specificReviewItem;
     } catch (error: any) {
       if (error instanceof NotFoundException) throw error;

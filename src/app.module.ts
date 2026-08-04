@@ -8,7 +8,6 @@ import { AuthModule } from './main/auth/auth.module';
 import { MailModule } from './common/mail/mail.module';
 import { OpenaiModule } from './main/openai/openai.module';
 import { RealTimeCallModule } from './main/calls/realtime-call.module';
-import { InsuranceModule } from './main/admin/insurance/insurance.module';
 import { SeedService } from './common/seed/seedService';
 import { UserManagementModule } from './main/admin/user-management/user-management.module';
 import { UsersModule } from './main/users/users.module';
@@ -32,7 +31,6 @@ import { SubscriptionModule } from './main/subscription/subscription.module';
     ConfigModule.forRoot({ isGlobal: true }),
     AuthModule,
     CommissionModule,
-    InsuranceModule,
     UserManagementModule,
     ProviderSpecializationModule,
     RedisModule,
@@ -57,4 +55,4 @@ import { SubscriptionModule } from './main/subscription/subscription.module';
   controllers: [AppController],
   providers: [AppService, SeedService],
 })
-export class AppModule {}
+export class AppModule { }

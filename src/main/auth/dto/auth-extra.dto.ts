@@ -41,9 +41,7 @@ export class ChangePasswordDto {
   newPassword!: string;
 }
 
-
 export class LogoutDto {
-
   @ApiProperty({
     example: 'your_refresh_token',
   })
