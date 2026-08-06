@@ -39,6 +39,9 @@ model Auth {
   createdChats    LiveChat[]            @relation("LiveChatCreator")
   messageReads    LiveMessageRead[]
 
+  tickets         Ticket[]         @relation("UserTickets")
+  assignedTickets Ticket[]         @relation("AssignedTickets")
+  ticketMessages  TicketMessage[]  @relation("UserTicketMessages")
 
   isEmailVerified Boolean @default(false)
 }

@@ -25,6 +25,8 @@ import { FeedbackReviewsModule } from './main/feedback-reviews/feedback-reviews.
 import { NotificationModule } from './main/notification/notification.module';
 import { UserDailyLogsModule } from './main/user-daily-logs/user-daily-logs.module';
 import { SubscriptionModule } from './main/subscription/subscription.module';
+import { ExecutiveDashboardModule } from './main/admin/executive-dashboard/executive-dashboard.module';
+import { TicketManagementModule } from './main/admin/ticket-management/ticket-management.module';
 
 @Module({
   imports: [
@@ -33,6 +35,8 @@ import { SubscriptionModule } from './main/subscription/subscription.module';
     CommissionModule,
     UserManagementModule,
     ProviderSpecializationModule,
+    ExecutiveDashboardModule,
+    TicketManagementModule,
     RedisModule,
     PrismaModule,
     MailModule,

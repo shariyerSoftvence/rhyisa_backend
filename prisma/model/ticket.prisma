@@ -1,0 +1,60 @@
+model Ticket {
+  id                     String                 @id @default(uuid())
+  ticketNumber           String                 @unique
+  subject                String
+  description            String                 @db.Text
+  category               String?
+  priority               TicketPriority         @default(MEDIUM)
+  status                 TicketStatus           @default(OPEN)
+  preferredContactMethod PreferredContactMethod @default(EMAIL)
+  attachments            String[]               @default([])
+
+  assignedToId           String?
+  assignedTo             Auth?                  @relation("AssignedTickets", fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  authId                 String
+  auth                   Auth                   @relation("UserTickets", fields: [authId], references: [id], onDelete: Cascade)
+
+  messages               TicketMessage[]
+
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
+
+  @@map("tickets")
+}
+
+model TicketMessage {
+  id        String   @id @default(uuid())
+  ticketId  String
+  ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  senderId  String
+  sender    Auth     @relation("UserTicketMessages", fields: [senderId], references: [id], onDelete: Cascade)
+
+  message   String   @db.Text
+  isAgent   Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("ticket_messages")
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum PreferredContactMethod {
+  EMAIL
+  PHONE
+}
