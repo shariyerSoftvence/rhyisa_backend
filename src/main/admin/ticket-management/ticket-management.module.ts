@@ -10,11 +10,7 @@ import { SocketAuthMiddleware } from '../../../common/middleware/socket.auth.mid
 @Module({
   imports: [PrismaModule, RedisModule, ExecutiveDashboardModule],
   controllers: [TicketManagementController],
-  providers: [
-    TicketManagementService,
-    TicketGateway,
-    SocketAuthMiddleware,
-  ],
+  providers: [TicketManagementService, TicketGateway, SocketAuthMiddleware],
   exports: [TicketManagementService, TicketGateway],
 })
 export class TicketManagementModule {}

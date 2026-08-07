@@ -484,7 +484,9 @@ export class ProviderProfileService {
       await this.redis.del(`directory:provider:${providerId}`);
       await this.redis.del(`directory:provider:${providerId}:services`);
       const client = this.redis.getClient();
-      const keys = await client.keys(`directory:provider:${providerId}:availability:*`);
+      const keys = await client.keys(
+        `directory:provider:${providerId}:availability:*`,
+      );
       if (keys.length > 0) {
         await client.del(...keys);
       }

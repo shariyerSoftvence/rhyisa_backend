@@ -1,10 +1,7 @@
-
-
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
-
 
 @Injectable()
 export class UploadFilesService {
@@ -16,7 +13,7 @@ export class UploadFilesService {
     }
   }
 
-async uploadImages(files: Express.Multer.File[]): Promise<string[]> {
+  async uploadImages(files: Express.Multer.File[]): Promise<string[]> {
     if (!files || files.length === 0) return [];
 
     const uploadPromises = files.map((file) => {
@@ -24,9 +21,9 @@ async uploadImages(files: Express.Multer.File[]): Promise<string[]> {
         try {
           const fileName = `${uuidv4()}${path.extname(file.originalname)}`;
           const filePath = path.join(this.uploadPath, fileName);
-          
+
           fs.writeFileSync(filePath, file.buffer);
-          
+
           // Full URL path return kora hocche jate frontend theke direct access kora jay
           const fileUrl = `${this.baseUrl}/uploads/${fileName}`;
           resolve(fileUrl);
@@ -38,7 +35,7 @@ async uploadImages(files: Express.Multer.File[]): Promise<string[]> {
 
     return Promise.all(uploadPromises);
   }
-async uploadSingleImage(
+  async uploadSingleImage(
     file: Express.Multer.File,
     folder: string = 'profiles',
   ) {
@@ -54,9 +51,9 @@ async uploadSingleImage(
 
       fs.writeFileSync(filePath, file.buffer);
 
-      return { 
-        url: `${this.baseUrl}/uploads/${folder}/${fileName}`, 
-        public_id: publicId 
+      return {
+        url: `${this.baseUrl}/uploads/${folder}/${fileName}`,
+        public_id: publicId,
       };
     } catch (error) {
       throw new InternalServerErrorException('Local Upload Failed');

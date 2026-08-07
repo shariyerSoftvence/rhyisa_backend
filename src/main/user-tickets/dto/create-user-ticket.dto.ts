@@ -9,20 +9,29 @@ import {
 import {
   PreferredContactMethod,
   TicketPriority,
-} from '../../../../../generated/prisma/enums';
+} from '../../../../generated/prisma/enums';
 
-export class CreateTicketDto {
-  @ApiProperty({ example: 'I was double charged this month' })
+export class CreateUserTicketDto {
+  @ApiProperty({
+    example: 'I was double charged this month',
+    description: 'Subject title of the ticket',
+  })
   @IsNotEmpty()
   @IsString()
   subject!: string;
 
-  @ApiProperty({ example: 'I was charged twice for my annual subscription...' })
+  @ApiProperty({
+    example: 'I was charged twice for my subscription...',
+    description: 'Detailed description of the issue',
+  })
   @IsNotEmpty()
   @IsString()
   description!: string;
 
-  @ApiPropertyOptional({ example: 'Billing & Payments' })
+  @ApiPropertyOptional({
+    example: 'Billing',
+    description: 'Category e.g. Billing, Technical, General',
+  })
   @IsOptional()
   @IsString()
   category?: string;
@@ -35,6 +44,7 @@ export class CreateTicketDto {
   @ApiPropertyOptional({
     enum: PreferredContactMethod,
     default: PreferredContactMethod.EMAIL,
+    description: 'Preferred contact method: EMAIL or PHONE',
   })
   @IsOptional()
   @IsEnum(PreferredContactMethod)
@@ -43,6 +53,7 @@ export class CreateTicketDto {
   @ApiPropertyOptional({
     type: [String],
     example: ['https://example.com/receipt.png'],
+    description: 'Optional attachment URL strings',
   })
   @IsOptional()
   @IsArray()

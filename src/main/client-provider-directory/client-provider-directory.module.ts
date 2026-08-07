@@ -4,6 +4,6 @@ import { ClientProviderDirectoryController } from './client-provider-directory.c
 
 @Module({
   providers: [ClientProviderDirectoryService],
-  controllers: [ClientProviderDirectoryController]
+  controllers: [ClientProviderDirectoryController],
 })
 export class ClientProviderDirectoryModule {}

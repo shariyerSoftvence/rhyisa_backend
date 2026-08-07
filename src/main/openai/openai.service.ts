@@ -7,9 +7,11 @@ import {
 import OpenAI from 'openai';
 import * as fs from 'fs';
 import { TrackMealResponse } from '../track-meal/dto/meal.schema';
-import { GenerateHealthGoalsPayload, HistoricalLogsInput, RecommendationInput } from './schema/goalGenerate';
-
-
+import {
+  GenerateHealthGoalsPayload,
+  HistoricalLogsInput,
+  RecommendationInput,
+} from './schema/goalGenerate';
 
 @Injectable()
 export class OpenaiService {
@@ -41,31 +43,38 @@ export class OpenaiService {
     }
   }
 
-  async processVoiceToMealDataDirect(filePath: string): Promise<TrackMealResponse> {
-  try {
-    // 1. Transcribe the audio file first using Whisper
-    const transcription = await this.openai.audio.transcriptions.create({
-      file: fs.createReadStream(filePath),
-      model: 'whisper-1',
-    });
+  async processVoiceToMealDataDirect(
+    filePath: string,
+  ): Promise<TrackMealResponse> {
+    try {
+      // 1. Transcribe the audio file first using Whisper
+      const transcription = await this.openai.audio.transcriptions.create({
+        file: fs.createReadStream(filePath),
+        model: 'whisper-1',
+      });
 
-    if (!transcription.text) {
-      return {
-        isValidMeal: false,
-        overall: { totalCalories: 0, totalProtein: 0, totalCarbs: 0, totalFat: 0 },
-        detectedMeals: [],
-        nutritionQualityScore: 0,
-        nutritionSummary: 'No audio transcription text could be identified.',
-      };
-    }
+      if (!transcription.text) {
+        return {
+          isValidMeal: false,
+          overall: {
+            totalCalories: 0,
+            totalProtein: 0,
+            totalCarbs: 0,
+            totalFat: 0,
+          },
+          detectedMeals: [],
+          nutritionQualityScore: 0,
+          nutritionSummary: 'No audio transcription text could be identified.',
+        };
+      }
 
-    // 2. Feed the transcription directly into the structured model completion pipeline
-    const response = await this.openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
-        {
-          role: 'system',
-          content: `You are an expert clinical dietitian and structured food data extraction engine. 
+      // 2. Feed the transcription directly into the structured model completion pipeline
+      const response = await this.openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: `You are an expert clinical dietitian and structured food data extraction engine. 
           Your job is to analyze the text meal description transcribed from voice audio and convert it into structured macro-nutrient metadata.
           Follow these strict rules:
           1. Detect all individual food items or distinct constituent dishes present within the description.
@@ -74,79 +83,103 @@ export class OpenaiService {
           4. Assign a qualitative 'nutritionQualityScore' scaling from 0 to 100 adhering to official global clinical health models.
           5. Synthesize a singular concise sentence 'nutritionSummary' tracking macro balances or highlighting fiber indicators.
           6. Maintain perfect mathematical truth rules: overall.totalCalories = (overall.totalProtein * 4) + (overall.totalCarbs * 4) + (overall.totalFat * 9).`,
-        },
-        {
-          role: 'user',
-          content: transcription.text,
-        },
-      ],
-      response_format: {
-        type: 'json_schema',
-        json_schema: {
-          name: 'multi_meal_voice_analysis_schema',
-          strict: true,
-          schema: {
-            type: 'object',
-            properties: {
-              isValidMeal: {
-                type: 'boolean',
-                description: 'True if recognizable food contents are detected within input text parameters.',
-              },
-              overall: {
-                type: 'object',
-                properties: {
-                  totalCalories: { type: 'number' },
-                  totalProtein: { type: 'number' },
-                  totalCarbs: { type: 'number' },
-                  totalFat: { type: 'number' },
+          },
+          {
+            role: 'user',
+            content: transcription.text,
+          },
+        ],
+        response_format: {
+          type: 'json_schema',
+          json_schema: {
+            name: 'multi_meal_voice_analysis_schema',
+            strict: true,
+            schema: {
+              type: 'object',
+              properties: {
+                isValidMeal: {
+                  type: 'boolean',
+                  description:
+                    'True if recognizable food contents are detected within input text parameters.',
                 },
-                required: ['totalCalories', 'totalProtein', 'totalCarbs', 'totalFat'],
-                additionalProperties: false,
-              },
-              detectedMeals: {
-                type: 'array',
-                items: {
+                overall: {
                   type: 'object',
                   properties: {
-                    name: { type: 'string' },
-                    estimatedServing: { type: 'string' },
-                    calories: { type: 'number' },
-                    protein: { type: 'number' },
-                    carbs: { type: 'number' },
-                    fat: { type: 'number' },
+                    totalCalories: { type: 'number' },
+                    totalProtein: { type: 'number' },
+                    totalCarbs: { type: 'number' },
+                    totalFat: { type: 'number' },
                   },
-                  required: ['name', 'estimatedServing', 'calories', 'protein', 'carbs', 'fat'],
+                  required: [
+                    'totalCalories',
+                    'totalProtein',
+                    'totalCarbs',
+                    'totalFat',
+                  ],
                   additionalProperties: false,
                 },
+                detectedMeals: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      name: { type: 'string' },
+                      estimatedServing: { type: 'string' },
+                      calories: { type: 'number' },
+                      protein: { type: 'number' },
+                      carbs: { type: 'number' },
+                      fat: { type: 'number' },
+                    },
+                    required: [
+                      'name',
+                      'estimatedServing',
+                      'calories',
+                      'protein',
+                      'carbs',
+                      'fat',
+                    ],
+                    additionalProperties: false,
+                  },
+                },
+                nutritionQualityScore: {
+                  type: 'number',
+                  description: 'A mathematical scale from 0 to 100.',
+                },
+                nutritionSummary: {
+                  type: 'string',
+                  description:
+                    'A short qualitative evaluation summary matching structural insights.',
+                },
               },
-              nutritionQualityScore: {
-                type: 'number',
-                description: 'A mathematical scale from 0 to 100.',
-              },
-              nutritionSummary: {
-                type: 'string',
-                description: 'A short qualitative evaluation summary matching structural insights.',
-              },
+              required: [
+                'isValidMeal',
+                'overall',
+                'detectedMeals',
+                'nutritionQualityScore',
+                'nutritionSummary',
+              ],
+              additionalProperties: false,
             },
-            required: ['isValidMeal', 'overall', 'detectedMeals', 'nutritionQualityScore', 'nutritionSummary'],
-            additionalProperties: false,
           },
         },
-      },
-    });
+      });
 
-    return JSON.parse(response.choices[0].message.content || '{}') as TrackMealResponse;
-  } catch (error: any) {
-    if (error?.status === 429) {
-      throw new BadRequestException('OpenAI quota exceeded. Please add billing.');
+      return JSON.parse(
+        response.choices[0].message.content || '{}',
+      ) as TrackMealResponse;
+    } catch (error: any) {
+      if (error?.status === 429) {
+        throw new BadRequestException(
+          'OpenAI quota exceeded. Please add billing.',
+        );
+      }
+      throw new InternalServerErrorException(
+        `Failed to process meal infrastructure voice transcription parsing pipeline: ${error.message}`,
+      );
+    } finally {
+      this.deleteFile(filePath);
     }
-    throw new InternalServerErrorException(
-      `Failed to process meal infrastructure voice transcription parsing pipeline: ${error.message}`,
-    );
-  } finally {
-    this.deleteFile(filePath);
   }
-}
 
   async imageToText(filePath: string) {
     try {
@@ -561,8 +594,14 @@ export class OpenaiService {
                     type: 'object',
                     properties: {
                       title: { type: 'string' },
-                      type: { type: 'string', enum: ['nutrition', 'hydration', 'activity', 'sleep'] },
-                      impact: { type: 'string', enum: ['High Impact', 'Medium Impact', 'Great Job!'] },
+                      type: {
+                        type: 'string',
+                        enum: ['nutrition', 'hydration', 'activity', 'sleep'],
+                      },
+                      impact: {
+                        type: 'string',
+                        enum: ['High Impact', 'Medium Impact', 'Great Job!'],
+                      },
                     },
                     required: ['title', 'type', 'impact'],
                     additionalProperties: false,
@@ -576,67 +615,78 @@ export class OpenaiService {
         },
       });
 
-      return JSON.parse(response.choices[0].message.content || '{"recommendations": []}');
+      return JSON.parse(
+        response.choices[0].message.content || '{"recommendations": []}',
+      );
     } catch (error: any) {
-      throw new InternalServerErrorException(`Failed to generate AI clinical health updates: ${error.message}`);
+      throw new InternalServerErrorException(
+        `Failed to generate AI clinical health updates: ${error.message}`,
+      );
     }
   }
 
   async generateHistoricalIntelligenceAnalysis(data: HistoricalLogsInput) {
-  try {
-    const response = await this.openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
-        {
-          role: 'system',
-          content: `You are an expert clinical health informatics scientist and wellness intelligence engine. 
+    try {
+      const response = await this.openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: `You are an expert clinical health informatics scientist and wellness intelligence engine. 
           Your job is to analyze the user's historical 30-day health logs dataset and compile structural insights.
           Follow these strict rules:
           1. Evaluate the trends in healthScore, sleep, steps, and hydration across the timeline.
           2. Generate an overall evaluation message summarising the multi-week progression trajectory.
           3. Isolate the key areas working well and the core vulnerabilities needing immediate programmatic behavioral corrections.
           4. Return ONLY valid JSON matching the strict schema layout.`,
-        },
-        {
-          role: 'user',
-          content: JSON.stringify(data),
-        },
-      ],
-      response_format: {
-        type: 'json_schema',
-        json_schema: {
-          name: 'historical_intelligence_analysis_schema',
-          strict: true,
-          schema: {
-            type: 'object',
-            properties: {
-              historicalSummary: { 
-                type: 'string',
-                description: 'A comprehensive qualitative review tracking the 30-day trajectory trends.'
+          },
+          {
+            role: 'user',
+            content: JSON.stringify(data),
+          },
+        ],
+        response_format: {
+          type: 'json_schema',
+          json_schema: {
+            name: 'historical_intelligence_analysis_schema',
+            strict: true,
+            schema: {
+              type: 'object',
+              properties: {
+                historicalSummary: {
+                  type: 'string',
+                  description:
+                    'A comprehensive qualitative review tracking the 30-day trajectory trends.',
+                },
+                keyStrengths: {
+                  type: 'array',
+                  items: { type: 'string' },
+                  description:
+                    'List of behavioral indicators matching positive metrics compliance over the past month.',
+                },
+                vulnerabilities: {
+                  type: 'array',
+                  items: { type: 'string' },
+                  description:
+                    'List of critical gaps discovered across the multi-week logging loop parameters.',
+                },
               },
-              keyStrengths: {
-                type: 'array',
-                items: { type: 'string' },
-                description: 'List of behavioral indicators matching positive metrics compliance over the past month.'
-              },
-              vulnerabilities: {
-                type: 'array',
-                items: { type: 'string' },
-                description: 'List of critical gaps discovered across the multi-week logging loop parameters.'
-              },
+              required: [
+                'historicalSummary',
+                'keyStrengths',
+                'vulnerabilities',
+              ],
+              additionalProperties: false,
             },
-            required: ['historicalSummary', 'keyStrengths', 'vulnerabilities'],
-            additionalProperties: false,
           },
         },
-      },
-    });
+      });
 
-    return JSON.parse(response.choices[0].message.content || '{}');
-  } catch (error: any) {
-    throw new InternalServerErrorException(
-      `Failed to compile AI insights on the historical tracking timeline data array: ${error.message}`,
-    );
+      return JSON.parse(response.choices[0].message.content || '{}');
+    } catch (error: any) {
+      throw new InternalServerErrorException(
+        `Failed to compile AI insights on the historical tracking timeline data array: ${error.message}`,
+      );
+    }
   }
-}
 }

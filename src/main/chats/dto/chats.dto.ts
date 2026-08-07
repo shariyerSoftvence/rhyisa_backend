@@ -13,7 +13,6 @@ import {
 } from 'class-validator';
 import { LiveMediaType } from '../../../../generated/prisma/enums';
 
-
 export class StartChatsDto {
   @ApiProperty({
     description: 'ID of the user to chat with',

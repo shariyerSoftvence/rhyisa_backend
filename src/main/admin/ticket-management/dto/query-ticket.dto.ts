@@ -1,10 +1,16 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEnum, IsNumber, IsOptional, IsString } from 'class-validator';
 import { Type } from 'class-transformer';
-import { TicketPriority, TicketStatus } from '../../../../../generated/prisma/enums';
+import {
+  TicketPriority,
+  TicketStatus,
+} from '../../../../../generated/prisma/enums';
 
 export class QueryTicketDto {
-  @ApiPropertyOptional({ description: 'Search term for ticket number, user name/email, subject, category' })
+  @ApiPropertyOptional({
+    description:
+      'Search term for ticket number, user name/email, subject, category',
+  })
   @IsOptional()
   @IsString()
   search?: string;
@@ -14,7 +20,9 @@ export class QueryTicketDto {
   @IsEnum(TicketStatus)
   status?: TicketStatus;
 
-  @ApiPropertyOptional({ description: 'Filter by category string e.g. "Billing & Payments"' })
+  @ApiPropertyOptional({
+    description: 'Filter by category string e.g. "Billing & Payments"',
+  })
   @IsOptional()
   @IsString()
   category?: string;
@@ -39,7 +47,9 @@ export class QueryTicketDto {
   @IsString()
   endDate?: string;
 
-  @ApiPropertyOptional({ description: 'Field to sort by: createdAt, updatedAt, priority, status' })
+  @ApiPropertyOptional({
+    description: 'Field to sort by: createdAt, updatedAt, priority, status',
+  })
   @IsOptional()
   @IsString()
   sortBy?: string = 'createdAt';

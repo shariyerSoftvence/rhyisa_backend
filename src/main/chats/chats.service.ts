@@ -30,9 +30,10 @@ export class chatsService {
       role: user.role,
       isVerified: user.isVerified,
       name: user.fullName,
-      profilePhoto: user.role === 'USER'
-        ? user.userProfile?.profileImage?.url || null
-        : user.providerProfile?.profileImage?.url || null,
+      profilePhoto:
+        user.role === 'USER'
+          ? user.userProfile?.profileImage?.url || null
+          : user.providerProfile?.profileImage?.url || null,
     };
   }
 
@@ -56,17 +57,15 @@ export class chatsService {
     if (!chat) return null;
     return {
       ...chat,
-      participants: chat.participants?.map((p) => this.mapParticipantUser(p)) || [],
+      participants:
+        chat.participants?.map((p) => this.mapParticipantUser(p)) || [],
       messages: chat.messages?.map((m) => this.mapMessage(m)) || [],
     };
   }
 
   /** Find or create 1-to-1 chat */
   @HandleError('Failed to get or create chat', 'chat')
-  async getOrCreatePrivateChat(
-    userA: string,
-    userB: string,
-  ): Promise<any> {
+  async getOrCreatePrivateChat(userA: string, userB: string): Promise<any> {
     // 1. Verify User Roles (Only User-to-Provider or Provider-to-User, no User-to-User / Provider-to-Provider unless Admin is involved)
     const userAObj = await this.client.auth.findUnique({
       where: { id: userA },
@@ -84,14 +83,16 @@ export class chatsService {
     const roleA = userAObj.role;
     const roleB = userBObj.role;
 
-    const isAllowed = 
+    const isAllowed =
       (roleA === RoleType.USER && roleB === RoleType.PROVIDER) ||
       (roleA === RoleType.PROVIDER && roleB === RoleType.USER) ||
       roleA === RoleType.ADMIN ||
       roleB === RoleType.ADMIN;
 
     if (!isAllowed) {
-      throw new ForbiddenException('Chats are only allowed between a user and a provider');
+      throw new ForbiddenException(
+        'Chats are only allowed between a user and a provider',
+      );
     }
 
     const userSelect = {

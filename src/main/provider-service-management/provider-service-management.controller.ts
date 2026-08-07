@@ -74,7 +74,11 @@ export class ProviderServiceManagementController {
     @Param('serviceId') serviceId: string,
     @Body() dto: UpdateServiceDto,
   ) {
-    return this.serviceManager.updateProviderServices(req.user.id, serviceId, dto);
+    return this.serviceManager.updateProviderServices(
+      req.user.id,
+      serviceId,
+      dto,
+    );
   }
 
   @Delete(':serviceId')

@@ -363,7 +363,9 @@ export class ClientBookingService {
       await this.redis.del(`booking:id:${bookingId}`);
       await this.redis.del(`booking:client:${authId}`);
       const client = this.redis.getClient();
-      const availKeys = await client.keys(`directory:provider:${booking.providerId}:availability:*`);
+      const availKeys = await client.keys(
+        `directory:provider:${booking.providerId}:availability:*`,
+      );
       if (availKeys.length > 0) await client.del(...availKeys);
 
       return updatedBooking;
@@ -411,7 +413,9 @@ export class ClientBookingService {
         await this.redis.del(`booking:id:${bookingId}`);
         await this.redis.del(`booking:client:${authId}`);
         const redisClient = this.redis.getClient();
-        const availKeys = await redisClient.keys(`directory:provider:${booking.providerId}:availability:*`);
+        const availKeys = await redisClient.keys(
+          `directory:provider:${booking.providerId}:availability:*`,
+        );
         if (availKeys.length > 0) await redisClient.del(...availKeys);
       };
 

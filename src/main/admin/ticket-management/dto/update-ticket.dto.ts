@@ -1,6 +1,9 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEnum, IsOptional, IsString } from 'class-validator';
-import { TicketPriority, TicketStatus } from '../../../../../generated/prisma/enums';
+import {
+  TicketPriority,
+  TicketStatus,
+} from '../../../../../generated/prisma/enums';
 
 export class UpdateTicketStatusDto {
   @ApiPropertyOptional({ enum: TicketStatus })
@@ -15,7 +18,9 @@ export class UpdateTicketPriorityDto {
 }
 
 export class AssignTicketDto {
-  @ApiPropertyOptional({ description: 'Admin Auth ID to assign ticket to, or null/empty to unassign' })
+  @ApiPropertyOptional({
+    description: 'Admin Auth ID to assign ticket to, or null/empty to unassign',
+  })
   @IsOptional()
   @IsString()
   adminId?: string;

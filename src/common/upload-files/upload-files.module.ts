@@ -3,6 +3,6 @@ import { UploadFilesService } from './upload-files.service';
 
 @Module({
   providers: [UploadFilesService],
-   exports: [UploadFilesService],
+  exports: [UploadFilesService],
 })
 export class UploadFilesModule {}

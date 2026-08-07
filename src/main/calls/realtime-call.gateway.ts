@@ -51,7 +51,9 @@ export class RealTimeCallGateway
 
     await client.join(`user:${userId}`);
     this.users.set(userId, client.id);
-    this.logger.log(`User connected to call gateway: ${userId}, socket: ${client.id}`);
+    this.logger.log(
+      `User connected to call gateway: ${userId}, socket: ${client.id}`,
+    );
   }
 
   handleDisconnect(client: Socket) {
@@ -85,7 +87,9 @@ export class RealTimeCallGateway
     });
 
     // Check if recipient is in room or online
-    const recipientSockets = await this.server.in(`user:${data.recipientUserId}`).fetchSockets();
+    const recipientSockets = await this.server
+      .in(`user:${data.recipientUserId}`)
+      .fetchSockets();
 
     if (recipientSockets.length > 0) {
       await this.callService.markRinging(call.id);
@@ -117,10 +121,14 @@ export class RealTimeCallGateway
   }
 
   @SubscribeMessage('decline-call')
-  async declineCall(@MessageBody() data: { callId: string; callerId?: string }) {
+  async declineCall(
+    @MessageBody() data: { callId: string; callerId?: string },
+  ) {
     await this.callService.markDeclined(data.callId);
     if (data.callerId) {
-      this.server.to(`user:${data.callerId}`).emit('call-declined', { callId: data.callId });
+      this.server
+        .to(`user:${data.callerId}`)
+        .emit('call-declined', { callId: data.callId });
     } else {
       this.server.emit('call-declined', { callId: data.callId });
     }
@@ -137,8 +145,12 @@ export class RealTimeCallGateway
   ) {
     await this.callService.endCall(data.callId);
 
-    this.server.to(`user:${data.callerId}`).emit('call-ended', { callId: data.callId });
-    this.server.to(`user:${data.receiverId}`).emit('call-ended', { callId: data.callId });
+    this.server
+      .to(`user:${data.callerId}`)
+      .emit('call-ended', { callId: data.callId });
+    this.server
+      .to(`user:${data.receiverId}`)
+      .emit('call-ended', { callId: data.callId });
   }
 
   //  WebRTC Signaling

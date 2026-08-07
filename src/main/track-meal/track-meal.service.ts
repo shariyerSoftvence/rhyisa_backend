@@ -46,36 +46,36 @@ export class TrackMealService {
     }
   }
 
- async trackFromVoice(authId: string, filePath: string) {
-  if (!filePath) {
-    throw new BadRequestException('Voice audio path context missing');
-  }
-
-  try {
-    const mealData = await this.openaiService.processVoiceToMealDataDirect(filePath);
-
-    if (!mealData.isValidMeal) {
-      throw new BadRequestException(
-        'The transcribed audio description could not be recognized as a valid food item',
-      );
+  async trackFromVoice(authId: string, filePath: string) {
+    if (!filePath) {
+      throw new BadRequestException('Voice audio path context missing');
     }
 
-    // Cache temporary pending data for 10 minutes (600 seconds)
-    const cacheKey = `pending_meal:${authId}`;
-    await this.redisService.set(cacheKey, mealData, 600);
+    try {
+      const mealData =
+        await this.openaiService.processVoiceToMealDataDirect(filePath);
 
-    return {
-      success: true,
-      data: mealData,
-    };
-  } catch (error: any) {
-    if (error instanceof BadRequestException) throw error;
-    throw new InternalServerErrorException(
-      `Failed to track meal from voice configuration: ${error.message}`,
-    );
+      if (!mealData.isValidMeal) {
+        throw new BadRequestException(
+          'The transcribed audio description could not be recognized as a valid food item',
+        );
+      }
+
+      // Cache temporary pending data for 10 minutes (600 seconds)
+      const cacheKey = `pending_meal:${authId}`;
+      await this.redisService.set(cacheKey, mealData, 600);
+
+      return {
+        success: true,
+        data: mealData,
+      };
+    } catch (error: any) {
+      if (error instanceof BadRequestException) throw error;
+      throw new InternalServerErrorException(
+        `Failed to track meal from voice configuration: ${error.message}`,
+      );
+    }
   }
-}
-
 
   async trackFromImage(authId: string, filePath: string) {
     if (!filePath) {
@@ -189,7 +189,9 @@ export class TrackMealService {
       });
 
       if (!userProfile) {
-        throw new NotFoundException('User profile records missing from registry');
+        throw new NotFoundException(
+          'User profile records missing from registry',
+        );
       }
 
       const startOfToday = new Date();

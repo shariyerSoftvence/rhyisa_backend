@@ -25,7 +25,10 @@ export class ExecutiveDashboardService {
     }
   }
 
-  private calculateGrowthPercentage(todayCount: number, prevCount: number): number {
+  private calculateGrowthPercentage(
+    todayCount: number,
+    prevCount: number,
+  ): number {
     if (prevCount === 0) {
       return todayCount > 0 ? 100 : 0;
     }
@@ -194,7 +197,9 @@ export class ExecutiveDashboardService {
           : 0;
       const nonConversionPercentage =
         totalUsersCount > 0
-          ? Number(((nonConvertedUsersCount / totalUsersCount) * 100).toFixed(2))
+          ? Number(
+              ((nonConvertedUsersCount / totalUsersCount) * 100).toFixed(2),
+            )
           : 0;
 
       const ticketsGrowthPercentage = this.calculateGrowthPercentage(
@@ -322,8 +327,7 @@ export class ExecutiveDashboardService {
 
         // User Growth
         const newUsers = registeredUsers.filter(
-          (u) =>
-            u.role === RoleType.USER && u.createdAt.getMonth() === index,
+          (u) => u.role === RoleType.USER && u.createdAt.getMonth() === index,
         ).length;
 
         const newProviders = registeredUsers.filter(
@@ -367,9 +371,7 @@ export class ExecutiveDashboardService {
       );
 
       const currentMonthIndex =
-        targetYear === new Date().getFullYear()
-          ? new Date().getMonth()
-          : 11;
+        targetYear === new Date().getFullYear() ? new Date().getMonth() : 11;
       const prevMonthIndex = currentMonthIndex > 0 ? currentMonthIndex - 1 : 0;
 
       const currentMonthRev =
@@ -399,7 +401,8 @@ export class ExecutiveDashboardService {
       );
 
       return {
-        message: 'Monthly Revenue Overview & User Growth retrieved successfully',
+        message:
+          'Monthly Revenue Overview & User Growth retrieved successfully',
         data: {
           year: targetYear,
           revenueSummary: {

@@ -7,44 +7,29 @@ import {
 
 import { AuthGuard } from '@nestjs/passport';
 
-import {
-  RoleType,
-  UserStatus,
-} from '../../../generated/prisma/enums';
+import { RoleType, UserStatus } from '../../../generated/prisma/enums';
 
 import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
 export class JwtAuthGuard extends AuthGuard('jwt') {
-  constructor(
-    private readonly prisma: PrismaService,
-  ) {
+  constructor(private readonly prisma: PrismaService) {
     super();
   }
 
-  async canActivate(
-    context: ExecutionContext,
-  ): Promise<boolean> {
-    const canActivate = (await super.canActivate(
-      context,
-    )) as boolean;
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const canActivate = (await super.canActivate(context)) as boolean;
 
     if (!canActivate) {
-      throw new UnauthorizedException(
-        'Unauthorized',
-      );
+      throw new UnauthorizedException('Unauthorized');
     }
 
-    const request = context
-      .switchToHttp()
-      .getRequest();
+    const request = context.switchToHttp().getRequest();
 
     const jwtUser = request.user;
 
     if (!jwtUser?.id) {
-      throw new UnauthorizedException(
-        'Invalid token payload',
-      );
+      throw new UnauthorizedException('Invalid token payload');
     }
 
     // Fresh user fetch from database
@@ -61,9 +46,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     });
 
     if (!user) {
-      throw new UnauthorizedException(
-        'User not found',
-      );
+      throw new UnauthorizedException('User not found');
     }
 
     // overwrite request.user with fresh db user
@@ -76,18 +59,13 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
 
     // Email verification
     if (!user.isEmailVerified) {
-      throw new ForbiddenException(
-        'Please verify your email address',
-      );
+      throw new ForbiddenException('Please verify your email address');
     }
 
     // User status check
     if (user.status !== UserStatus.ACTIVE) {
-      throw new ForbiddenException(
-        `Your account is ${user.status}`,
-      );
+      throw new ForbiddenException(`Your account is ${user.status}`);
     }
-
 
     return true;
   }

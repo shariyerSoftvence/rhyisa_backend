@@ -1,4 +1,10 @@
-import { Injectable, CanActivate, ExecutionContext, ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
@@ -10,7 +16,9 @@ export class StripeVerifiedGuard implements CanActivate {
     const user = request.user;
 
     if (!user || !user.id) {
-      throw new ForbiddenException('Authentication credential context missing from active network pipeline');
+      throw new ForbiddenException(
+        'Authentication credential context missing from active network pipeline',
+      );
     }
 
     const providerProfile = await this.prisma.providerProfile.findUnique({
@@ -18,11 +26,15 @@ export class StripeVerifiedGuard implements CanActivate {
     });
 
     if (!providerProfile) {
-      throw new NotFoundException('Operational profile mappings not discovered inside active database layer');
+      throw new NotFoundException(
+        'Operational profile mappings not discovered inside active database layer',
+      );
     }
 
     if (!providerProfile.isPaymentEnabled) {
-      throw new ForbiddenException('Your Stripe Connect Express account onboarding sequence parameters are incomplete or unverified');
+      throw new ForbiddenException(
+        'Your Stripe Connect Express account onboarding sequence parameters are incomplete or unverified',
+      );
     }
 
     return true;

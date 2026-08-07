@@ -95,9 +95,10 @@ export class TrackMealController {
     return this.trackMealService.confirmAndLogMeal(req.user.id);
   }
 
-@Patch('daily-log')
+  @Patch('daily-log')
   @ApiOperation({
-    summary: 'Modify or update today\'s non-meal metrics safely without breaking existing macro entries',
+    summary:
+      "Modify or update today's non-meal metrics safely without breaking existing macro entries",
   })
   async logDailyMetrics(@Req() req: any, @Body() dto: LogDailyMetricsDto) {
     return this.trackMealService.createOrUpdateDailyMetrics(req.user.id, dto);

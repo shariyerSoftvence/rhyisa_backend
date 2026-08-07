@@ -11,9 +11,7 @@ export class MailService {
   private readonly logger = new Logger(MailService.name);
   private transporter: nodemailer.Transporter;
 
-  constructor(
-    private readonly configService: ConfigService,
-  ) {
+  constructor(private readonly configService: ConfigService) {
     this.transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
@@ -23,12 +21,7 @@ export class MailService {
     });
   }
 
-  async sendMail(
-    to: string,
-    subject: string,
-    text: string,
-    html?: string,
-  ) {
+  async sendMail(to: string, subject: string, text: string, html?: string) {
     const mailOptions = {
       from: `"Grovr" <${this.configService.get<string>('MAIL_USER')}>`,
       to,
@@ -38,23 +31,15 @@ export class MailService {
     };
 
     try {
-      const info = await this.transporter.sendMail(
-        mailOptions,
-      );
+      const info = await this.transporter.sendMail(mailOptions);
 
-      this.logger.log(
-        `Email sent successfully: ${info.messageId}`,
-      );
+      this.logger.log(`Email sent successfully: ${info.messageId}`);
 
       return info;
     } catch (error: any) {
-      this.logger.error(
-        `Failed to send email: ${error.message}`,
-      );
+      this.logger.error(`Failed to send email: ${error.message}`);
 
-      throw new InternalServerErrorException(
-        'Failed to send email',
-      );
+      throw new InternalServerErrorException('Failed to send email');
     }
   }
 
@@ -63,16 +48,13 @@ export class MailService {
     otp: string,
     type: 'registration' | 'forgot-password' = 'registration',
   ) {
-
     const isRegistration = type === 'registration';
 
     const subject = isRegistration
       ? 'Verify Your Email'
       : 'Reset Your Password';
 
-    const title = isRegistration
-      ? 'Email Verification'
-      : 'Password Reset';
+    const title = isRegistration ? 'Email Verification' : 'Password Reset';
 
     const description = isRegistration
       ? 'Use the OTP below to verify your email address.'
@@ -239,11 +221,6 @@ If you did not request this email, please ignore it.
 </html>
 `;
 
-    return await this.sendMail(
-      email,
-      subject,
-      textBody,
-      htmlBody,
-    );
+    return await this.sendMail(email, subject, textBody, htmlBody);
   }
 }

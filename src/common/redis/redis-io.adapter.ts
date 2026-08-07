@@ -31,7 +31,9 @@ export class RedisIoAdapter extends IoAdapter {
       ]);
 
       this.adapterConstructor = createAdapter(pubClient, subClient);
-      this.logger.log('Socket.IO Redis Adapter connected and initialized cleanly for Pub-Sub');
+      this.logger.log(
+        'Socket.IO Redis Adapter connected and initialized cleanly for Pub-Sub',
+      );
     } catch (err: any) {
       this.logger.error(`Failed to connect RedisIoAdapter: ${err.message}`);
     }

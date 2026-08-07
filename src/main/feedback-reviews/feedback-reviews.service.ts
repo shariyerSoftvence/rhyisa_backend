@@ -188,9 +188,13 @@ export class FeedbackReviewsService {
         },
       });
 
-      await this.redis.del(`reviews:provider:${targetBooking.providerId}:public`);
+      await this.redis.del(
+        `reviews:provider:${targetBooking.providerId}:public`,
+      );
       if (targetBooking.provider?.authId) {
-        await this.redis.del(`reviews:provider:${targetBooking.provider.authId}:own`);
+        await this.redis.del(
+          `reviews:provider:${targetBooking.provider.authId}:own`,
+        );
       }
       await this.redis.del(`directory:provider:${targetBooking.providerId}`);
       await this.redis.del('directory:providers:all');

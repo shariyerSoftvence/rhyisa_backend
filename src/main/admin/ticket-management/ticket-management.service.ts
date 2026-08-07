@@ -116,14 +116,20 @@ export class TicketManagementService {
           { subject: { contains: cleanSearch, mode: 'insensitive' } },
           { description: { contains: cleanSearch, mode: 'insensitive' } },
           { category: { contains: cleanSearch, mode: 'insensitive' } },
-          { auth: { fullName: { contains: cleanSearch, mode: 'insensitive' } } },
+          {
+            auth: { fullName: { contains: cleanSearch, mode: 'insensitive' } },
+          },
           { auth: { email: { contains: cleanSearch, mode: 'insensitive' } } },
         ];
       }
 
       // Stats metrics calculation matching the dashboard cards
       const now = new Date();
-      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const startOfToday = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate(),
+      );
       const startOfYesterday = new Date(
         now.getFullYear(),
         now.getMonth(),
@@ -166,7 +172,9 @@ export class TicketManagementService {
           },
         }),
 
-        this.prisma.ticket.count({ where: { ...where, status: TicketStatus.OPEN } }),
+        this.prisma.ticket.count({
+          where: { ...where, status: TicketStatus.OPEN },
+        }),
         this.prisma.ticket.count({
           where: {
             ...where,
@@ -298,7 +306,10 @@ export class TicketManagementService {
           stats: {
             totalTickets: {
               count: totalTickets,
-              growthPercentage: this.calculateGrowth(ticketsToday, ticketsYesterday),
+              growthPercentage: this.calculateGrowth(
+                ticketsToday,
+                ticketsYesterday,
+              ),
             },
             openTickets: {
               count: openCount,
@@ -411,7 +422,9 @@ export class TicketManagementService {
       });
 
       if (!ticket) {
-        throw new NotFoundException(`Ticket with identifier "${ticketIdOrNumber}" not found`);
+        throw new NotFoundException(
+          `Ticket with identifier "${ticketIdOrNumber}" not found`,
+        );
       }
 
       // Calculate total spend by user
@@ -549,7 +562,9 @@ export class TicketManagementService {
       const updated = await this.prisma.ticket.update({
         where: { id: ticketId },
         data: { status, updatedAt: new Date() },
-        include: { auth: { select: { id: true, fullName: true, email: true } } },
+        include: {
+          auth: { select: { id: true, fullName: true, email: true } },
+        },
       });
 
       await this.invalidateCaches(ticketId);
@@ -621,7 +636,9 @@ export class TicketManagementService {
           where: { id: adminId },
         });
         if (!admin) {
-          throw new BadRequestException(`Admin user with ID ${adminId} not found`);
+          throw new BadRequestException(
+            `Admin user with ID ${adminId} not found`,
+          );
         }
       }
 
@@ -645,7 +662,10 @@ export class TicketManagementService {
         data: updated,
       };
     } catch (error: any) {
-      if (error instanceof NotFoundException || error instanceof BadRequestException) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
         throw error;
       }
       throw new InternalServerErrorException(

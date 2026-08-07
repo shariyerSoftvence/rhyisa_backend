@@ -47,11 +47,11 @@ export class StripeWebhooksService {
     try {
       switch (event.type) {
         case 'account.updated':
-          await this.handleAccountUpdated(event.data.object as any);
+          await this.handleAccountUpdated(event.data.object);
           break;
 
         case 'checkout.session.completed':
-          await this.handleCheckoutSessionCompleted(event.data.object as any);
+          await this.handleCheckoutSessionCompleted(event.data.object);
           break;
 
         default:
@@ -191,7 +191,9 @@ export class StripeWebhooksService {
           await this.redis.del(`booking:provider:${providerAuth.authId}`);
         }
         const redisClient = this.redis.getClient();
-        const availKeys = await redisClient.keys(`directory:provider:${providerId}:availability:*`);
+        const availKeys = await redisClient.keys(
+          `directory:provider:${providerId}:availability:*`,
+        );
         if (availKeys.length > 0) {
           await redisClient.del(...availKeys);
         }

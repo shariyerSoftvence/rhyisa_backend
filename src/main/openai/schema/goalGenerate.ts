@@ -10,7 +10,6 @@ export interface GenerateHealthGoalsPayload {
   supplements: string[];
 }
 
-
 export interface RecommendationInput {
   goals: {
     calorieGoal: number;
@@ -42,4 +41,3 @@ export interface HistoricalLogsInput {
     sleepHours: number;
   }>;
 }
-

@@ -84,7 +84,8 @@ export class TicketManagementController {
 
   @Patch(':id/status')
   @ApiOperation({
-    summary: 'Change status of a ticket (OPEN, IN_PROGRESS, RESOLVED, CLOSED) (Admin Only)',
+    summary:
+      'Change status of a ticket (OPEN, IN_PROGRESS, RESOLVED, CLOSED) (Admin Only)',
   })
   @ApiResponse({
     status: 200,
@@ -100,7 +101,8 @@ export class TicketManagementController {
 
   @Patch(':id/priority')
   @ApiOperation({
-    summary: 'Update priority of a ticket (LOW, MEDIUM, HIGH, URGENT) (Admin Only)',
+    summary:
+      'Update priority of a ticket (LOW, MEDIUM, HIGH, URGENT) (Admin Only)',
   })
   @ApiResponse({
     status: 200,
@@ -121,16 +123,14 @@ export class TicketManagementController {
     status: 200,
     description: 'Ticket assignment updated cleanly.',
   })
-  async assignTicket(
-    @Param('id') id: string,
-    @Body() dto: AssignTicketDto,
-  ) {
+  async assignTicket(@Param('id') id: string, @Body() dto: AssignTicketDto) {
     return this.ticketManagementService.assignTicket(id, dto.adminId);
   }
 
   @Post(':id/messages')
   @ApiOperation({
-    summary: 'Send reply message in a ticket conversation (Admin Agent) (Admin Only)',
+    summary:
+      'Send reply message in a ticket conversation (Admin Agent) (Admin Only)',
   })
   @ApiResponse({
     status: 201,

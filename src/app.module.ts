@@ -27,6 +27,7 @@ import { UserDailyLogsModule } from './main/user-daily-logs/user-daily-logs.modu
 import { SubscriptionModule } from './main/subscription/subscription.module';
 import { ExecutiveDashboardModule } from './main/admin/executive-dashboard/executive-dashboard.module';
 import { TicketManagementModule } from './main/admin/ticket-management/ticket-management.module';
+import { UserTicketsModule } from './main/user-tickets/user-tickets.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { TicketManagementModule } from './main/admin/ticket-management/ticket-ma
     ProviderSpecializationModule,
     ExecutiveDashboardModule,
     TicketManagementModule,
+    UserTicketsModule,
     RedisModule,
     PrismaModule,
     MailModule,
@@ -59,4 +61,4 @@ import { TicketManagementModule } from './main/admin/ticket-management/ticket-ma
   controllers: [AppController],
   providers: [AppService, SeedService],
 })
-export class AppModule { }
+export class AppModule {}

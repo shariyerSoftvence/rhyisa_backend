@@ -1,6 +1,14 @@
-import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
-import { RoleType, LoginType, UserStatus } from '../../../generated/prisma/enums';
+import {
+  RoleType,
+  LoginType,
+  UserStatus,
+} from '../../../generated/prisma/enums';
 import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
@@ -13,10 +21,12 @@ export class SeedService {
     try {
       const email = process.env.ADMIN_MAIL!;
       const password = process.env.ADMIN_PASS!;
-      console.log(email, "email is this")
+      console.log(email, 'email is this');
 
       if (!email || !password) {
-        this.logger.error('ADMIN_MAIL or ADMIN_PASS is not defined in the environment variables');
+        this.logger.error(
+          'ADMIN_MAIL or ADMIN_PASS is not defined in the environment variables',
+        );
         return { success: false, message: 'Missing environment variables' };
       }
 
@@ -25,10 +35,12 @@ export class SeedService {
       });
 
       if (existingAdmin) {
-        this.logger.log(`Super Admin with email ${email} already exists. Skipping seed.`);
+        this.logger.log(
+          `Super Admin with email ${email} already exists. Skipping seed.`,
+        );
         return { success: true, message: 'Super admin already exists' };
       }
-      const salt = Number(process.env.PASS_HASH_SALT!)
+      const salt = Number(process.env.PASS_HASH_SALT!);
       const hashedPassword = await bcrypt.hash(password, salt);
 
       const superAdmin = await this.prisma.auth.create({
@@ -46,11 +58,19 @@ export class SeedService {
         },
       });
 
-      this.logger.log(`Super Admin successfully seeded with ID: ${superAdmin.id}`);
-      return { success: true, message: 'Super admin seeded successfully', data: { id: superAdmin.id, email: superAdmin.email } };
+      this.logger.log(
+        `Super Admin successfully seeded with ID: ${superAdmin.id}`,
+      );
+      return {
+        success: true,
+        message: 'Super admin seeded successfully',
+        data: { id: superAdmin.id, email: superAdmin.email },
+      };
     } catch (error) {
       this.logger.error('Failed to seed super admin', error);
-      throw new InternalServerErrorException('Failed to complete super admin seeding execution');
+      throw new InternalServerErrorException(
+        'Failed to complete super admin seeding execution',
+      );
     }
   }
 
@@ -61,7 +81,9 @@ export class SeedService {
       });
 
       if (existingPlan) {
-        this.logger.log('Premium Dashboard subscription plan details already seeded. Skipping.');
+        this.logger.log(
+          'Premium Dashboard subscription plan details already seeded. Skipping.',
+        );
         return { success: true, message: 'Plan details already exist.' };
       }
 
@@ -81,15 +103,22 @@ export class SeedService {
         },
       });
 
-      this.logger.log(`Subscription plan data structures successfully seeded with ID: ${seededPlan.id}`);
+      this.logger.log(
+        `Subscription plan data structures successfully seeded with ID: ${seededPlan.id}`,
+      );
       return {
         success: true,
         message: 'Subscription plan details populated perfectly.',
         data: seededPlan,
       };
     } catch (error: any) {
-      this.logger.error('Failed to isolate subscription details seed execution processing loops', error);
-      throw new InternalServerErrorException(`Subscription isolated details population failed: ${error.message}`);
+      this.logger.error(
+        'Failed to isolate subscription details seed execution processing loops',
+        error,
+      );
+      throw new InternalServerErrorException(
+        `Subscription isolated details population failed: ${error.message}`,
+      );
     }
   }
 }

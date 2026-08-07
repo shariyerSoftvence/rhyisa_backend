@@ -4,7 +4,6 @@ import { NotificationsGateway } from './notifications.gateway';
 import { RoleType } from '../../../generated/prisma/enums';
 import { RedisService } from '../../common/redis/redis.service';
 
-
 export interface CreateNotificationPayload {
   type: string;
   title: string;

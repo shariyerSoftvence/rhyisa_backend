@@ -191,9 +191,10 @@ export class UserDailyLogsService {
       });
 
       // Pass the retrieved timeline history down to the OpenAI completion loop worker
-      const aiIntelligenceAnalysis = await this.openaiService.generateHistoricalIntelligenceAnalysis({
-        logs,
-      });
+      const aiIntelligenceAnalysis =
+        await this.openaiService.generateHistoricalIntelligenceAnalysis({
+          logs,
+        });
 
       const response = {
         success: true,

@@ -44,7 +44,8 @@ export class ExecutiveDashboardController {
     name: 'year',
     required: false,
     type: Number,
-    description: 'Year for monthly statistics (e.g. 2026). Defaults to current year.',
+    description:
+      'Year for monthly statistics (e.g. 2026). Defaults to current year.',
   })
   @ApiResponse({
     status: 200,

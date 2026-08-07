@@ -45,7 +45,9 @@ export class TicketGateway
 
   afterInit(server: Server) {
     server.use(this.socketAuthMiddleware.use());
-    this.logger.log('Socket.IO server initialized for Ticket Management Gateway');
+    this.logger.log(
+      'Socket.IO server initialized for Ticket Management Gateway',
+    );
     this.setupRedisPubSub();
   }
 
@@ -56,9 +58,14 @@ export class TicketGateway
 
       this.subRedisClient.subscribe('ticket_pubsub_events', (err) => {
         if (err) {
-          this.logger.error('Failed to subscribe to ticket_pubsub_events channel', err);
+          this.logger.error(
+            'Failed to subscribe to ticket_pubsub_events channel',
+            err,
+          );
         } else {
-          this.logger.log('Successfully subscribed to Redis ticket_pubsub_events channel');
+          this.logger.log(
+            'Successfully subscribed to Redis ticket_pubsub_events channel',
+          );
         }
       });
 
@@ -71,7 +78,9 @@ export class TicketGateway
               this.server.to(`ticket:${ticketId}`).emit(event, payload);
             }
           } catch (e: any) {
-            this.logger.error(`Error parsing Redis PubSub message: ${e.message}`);
+            this.logger.error(
+              `Error parsing Redis PubSub message: ${e.message}`,
+            );
           }
         }
       });
@@ -91,7 +100,9 @@ export class TicketGateway
     if (user.role === 'ADMIN') {
       await client.join('admin_room');
     }
-    this.logger.log(`User connected to Ticket Socket: ${userId} (${user.role})`);
+    this.logger.log(
+      `User connected to Ticket Socket: ${userId} (${user.role})`,
+    );
   }
 
   async handleDisconnect(client: Socket) {
@@ -108,7 +119,9 @@ export class TicketGateway
   ) {
     if (data?.ticketId) {
       await client.join(`ticket:${data.ticketId}`);
-      this.logger.log(`Client ${client.id} joined ticket room: ticket:${data.ticketId}`);
+      this.logger.log(
+        `Client ${client.id} joined ticket room: ticket:${data.ticketId}`,
+      );
       return { status: 'joined', ticketId: data.ticketId };
     }
   }
@@ -120,7 +133,9 @@ export class TicketGateway
   ) {
     if (data?.ticketId) {
       await client.leave(`ticket:${data.ticketId}`);
-      this.logger.log(`Client ${client.id} left ticket room: ticket:${data.ticketId}`);
+      this.logger.log(
+        `Client ${client.id} left ticket room: ticket:${data.ticketId}`,
+      );
       return { status: 'left', ticketId: data.ticketId };
     }
   }
@@ -131,21 +146,25 @@ export class TicketGateway
     @MessageBody() data: { ticketId: string; isTyping: boolean },
   ) {
     if (data?.ticketId) {
-      client.to(`ticket:${data.ticketId}`).emit(TicketSocketEvents.TICKET_TYPING, {
-        ticketId: data.ticketId,
-        userId: client.data.user?.id,
-        isTyping: data.isTyping,
-      });
+      client
+        .to(`ticket:${data.ticketId}`)
+        .emit(TicketSocketEvents.TICKET_TYPING, {
+          ticketId: data.ticketId,
+          userId: client.data.user?.id,
+          isTyping: data.isTyping,
+        });
     }
   }
 
   public publishTicketEvent(event: string, ticketId: string, payload: any) {
     try {
       this.server.to(`ticket:${ticketId}`).emit(event, payload);
-      this.redisService.getClient().publish(
-        'ticket_pubsub_events',
-        JSON.stringify({ event, ticketId, payload }),
-      );
+      this.redisService
+        .getClient()
+        .publish(
+          'ticket_pubsub_events',
+          JSON.stringify({ event, ticketId, payload }),
+        );
     } catch (error: any) {
       this.logger.error(`Error publishing ticket event: ${error.message}`);
     }
