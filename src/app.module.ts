@@ -28,6 +28,7 @@ import { SubscriptionModule } from './main/subscription/subscription.module';
 import { ExecutiveDashboardModule } from './main/admin/executive-dashboard/executive-dashboard.module';
 import { TicketManagementModule } from './main/admin/ticket-management/ticket-management.module';
 import { UserTicketsModule } from './main/user-tickets/user-tickets.module';
+import { AdminProviderManagementModule } from './main/admin/provider-management/admin-provider-management.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { UserTicketsModule } from './main/user-tickets/user-tickets.module';
     AuthModule,
     CommissionModule,
     UserManagementModule,
+    AdminProviderManagementModule,
     ProviderSpecializationModule,
     ExecutiveDashboardModule,
     TicketManagementModule,
