@@ -20,7 +20,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-rhisya}
       POSTGRES_DB: ${POSTGRES_DB:-rhisya-db}
     ports:
-      - "5433:5432"
+      - "5441:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
