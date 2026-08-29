@@ -17,6 +17,7 @@ import { MailService } from '../../common/mail/mail.service';
 import { InternalNotificationPublisherService } from '../notification/internal-notification-publisher.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { GenerateProfileTokenDto } from './dto/generate-profile-token.dto';
 import {
   VerifyOtpDto,
   ForgotPasswordDto,
@@ -24,6 +25,7 @@ import {
   ChangePasswordDto,
 } from './dto/auth-extra.dto';
 import { OTPType, UserStatus } from '../../../generated/prisma/enums';
+import { checkOverallProfileCompletion } from '../../common/utils/profile-completion.util';
 
 @Injectable()
 export class AuthService {
@@ -102,7 +104,13 @@ export class AuthService {
     try {
       const { email, otp } = verifyOtpDto;
 
-      const user = await this.prisma.auth.findUnique({ where: { email } });
+      const user = await this.prisma.auth.findUnique({
+        where: { email },
+        include: {
+          userProfile: true,
+          providerProfile: true,
+        },
+      });
       if (!user) throw new NotFoundException('User not found');
 
       const isValid = await this.validateOtp(
@@ -118,7 +126,35 @@ export class AuthService {
         data: { isEmailVerified: true, status: UserStatus.ACTIVE },
       });
 
-      return { message: 'Email verified successfully' };
+      const profileCompletion = checkOverallProfileCompletion(user);
+      const isProfileComplete = profileCompletion.isProfileComplete;
+
+      const tokens = await this.generateTokens(
+        user.id,
+        user.email,
+        user.role,
+        isProfileComplete,
+      );
+
+      await this.prisma.refreshToken.create({
+        data: {
+          token: tokens.refreshToken,
+          authId: user.id,
+          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        },
+      });
+
+      return {
+        message: 'Email verified successfully',
+        ...tokens,
+        profileCompletion,
+        user: {
+          id: user.id,
+          email: user.email,
+          fullName: user.fullName,
+          role: user.role,
+        },
+      };
     } catch (error: any) {
       this.logger.error(`OTP Verification failed: ${error.message}`);
       if (
@@ -136,7 +172,13 @@ export class AuthService {
     try {
       const { email, password } = loginDto;
 
-      const user = await this.prisma.auth.findUnique({ where: { email } });
+      const user = await this.prisma.auth.findUnique({
+        where: { email },
+        include: {
+          userProfile: true,
+          providerProfile: true,
+        },
+      });
       if (!user)
         throw new UnauthorizedException('User not found with this email.');
 
@@ -166,7 +208,15 @@ export class AuthService {
         }
       }
 
-      const tokens = await this.generateTokens(user.id, user.email, user.role);
+      const profileCompletion = checkOverallProfileCompletion(user);
+      const isProfileComplete = profileCompletion.isProfileComplete;
+
+      const tokens = await this.generateTokens(
+        user.id,
+        user.email,
+        user.role,
+        isProfileComplete,
+      );
 
       await this.prisma.refreshToken.create({
         data: {
@@ -178,6 +228,7 @@ export class AuthService {
 
       return {
         ...tokens,
+        profileCompletion,
         user: {
           id: user.id,
           email: user.email,
@@ -339,8 +390,14 @@ export class AuthService {
 
       if (!user) throw new UnauthorizedException('User not found');
 
-      await this.redis.set(cacheKey, user, 300);
-      return user;
+      const profileCompletion = checkOverallProfileCompletion(user);
+      const userResponse = {
+        ...user,
+        profileCompletion,
+      };
+
+      await this.redis.set(cacheKey, userResponse, 300);
+      return userResponse;
     } catch (error: any) {
       this.logger.error(`Get profile failed: ${error.message}`);
       if (error instanceof UnauthorizedException) throw error;
@@ -464,7 +521,84 @@ export class AuthService {
     return false;
   }
 
-  private async generateTokens(userId: string, email: string, role: string) {
+  async generateProfileToken(dto: GenerateProfileTokenDto) {
+    try {
+      const { email, password } = dto;
+      const user = await this.prisma.auth.findUnique({
+        where: { email },
+        include: {
+          userProfile: true,
+          providerProfile: true,
+        },
+      });
+
+      if (!user) {
+        throw new UnauthorizedException('Invalid credentials');
+      }
+
+      const isPasswordValid = await bcrypt.compare(password, user.password);
+      if (!isPasswordValid) {
+        throw new UnauthorizedException('Invalid credentials');
+      }
+
+      if (!user.isEmailVerified) {
+        throw new BadRequestException('Please verify your email address first');
+      }
+
+      const profileCompletion = checkOverallProfileCompletion(user);
+      const isProfileComplete = profileCompletion.isProfileComplete;
+
+      if (isProfileComplete) {
+        throw new BadRequestException(
+          'Your profile registration is already 100% complete. Please log in normally.',
+        );
+      }
+
+      const tokens = await this.generateTokens(
+        user.id,
+        user.email,
+        user.role,
+        false,
+      );
+
+      await this.prisma.refreshToken.create({
+        data: {
+          token: tokens.refreshToken,
+          authId: user.id,
+          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        },
+      });
+
+      return {
+        message: 'Profile completion token generated successfully',
+        ...tokens,
+        profileCompletion,
+        user: {
+          id: user.id,
+          email: user.email,
+          fullName: user.fullName,
+          role: user.role,
+        },
+      };
+    } catch (error: any) {
+      this.logger.error(`Generate profile token failed: ${error.message}`);
+      if (
+        error instanceof UnauthorizedException ||
+        error instanceof BadRequestException
+      )
+        throw error;
+      throw new InternalServerErrorException(
+        'Something went wrong generating profile token',
+      );
+    }
+  }
+
+  public async generateTokens(
+    userId: string,
+    email: string,
+    role: string,
+    isProfileComplete = false,
+  ) {
     const accessSecret = this.configService.get<string>('JWT_ACCESS_SECRET')!;
 
     const refreshSecret = this.configService.get<string>('JWT_REFRESH_SECRET')!;
@@ -475,12 +609,16 @@ export class AuthService {
     const refreshExpires =
       this.configService.get<string>('REFRESH_TOKEN_EXPIRES_IN') ?? '7d';
 
+    const tokenType = isProfileComplete ? 'FULL_ACCESS' : 'PROFILE_COMPLETION';
+
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(
         {
           sub: userId,
           email,
           role,
+          isProfileComplete,
+          tokenType,
         },
         {
           secret: accessSecret,
@@ -493,6 +631,8 @@ export class AuthService {
           sub: userId,
           email,
           role,
+          isProfileComplete,
+          tokenType,
         },
         {
           secret: refreshSecret,
@@ -504,6 +644,8 @@ export class AuthService {
     return {
       accessToken,
       refreshToken,
+      tokenType,
+      isProfileComplete,
     };
   }
 

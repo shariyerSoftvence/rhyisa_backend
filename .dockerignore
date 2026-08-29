@@ -1,8 +1,11 @@
 node_modules
-npm-debug.log
 dist
-build
-.env
+generated
 .git
 .gitignore
+.env
+.env.*
+.github
+coverage
+*.log
 README.md

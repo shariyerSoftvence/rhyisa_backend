@@ -12,6 +12,8 @@ import { MediaType, UserStatus } from '../../../generated/prisma/enums';
 import { UploadFilesService } from '../../common/upload-files/upload-files.service';
 import { OpenaiService } from '../openai/openai.service';
 import { RedisService } from '../../common/redis/redis.service';
+import { AuthService } from '../auth/auth.service';
+import { calculateUserProfileCompletion } from '../../common/utils/profile-completion.util';
 
 @Injectable()
 export class UserProfileService {
@@ -23,6 +25,7 @@ export class UserProfileService {
     private readonly uploadFilesService: UploadFilesService,
     private readonly openaiService: OpenaiService,
     private readonly redis: RedisService,
+    private readonly authService: AuthService,
   ) {}
 
   async createProfile(
@@ -152,9 +155,37 @@ export class UserProfileService {
         };
       });
 
+      const authUser = await this.prisma.auth.findUnique({
+        where: { id: authId },
+      });
+
+      const profileCompletion = calculateUserProfileCompletion(result.profile);
+
+      let tokens: any = null;
+      if (authUser) {
+        tokens = await this.authService.generateTokens(
+          authId,
+          authUser.email,
+          authUser.role,
+          profileCompletion.isProfileComplete,
+        );
+
+        await this.prisma.refreshToken.create({
+          data: {
+            token: tokens.refreshToken,
+            authId: authUser.id,
+            expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+          },
+        });
+      }
+
       await this.redis.del(`${this.CACHE_PREFIX}${authId}`);
       await this.redis.del(`auth:me:${authId}`);
-      return result;
+      return {
+        ...result,
+        profileCompletion,
+        tokens,
+      };
     } catch (error: any) {
       console.error(error);
 
@@ -187,8 +218,14 @@ export class UserProfileService {
         );
       }
 
-      await this.redis.set(cacheKey, profile, this.CACHE_TTL);
-      return profile;
+      const profileCompletion = calculateUserProfileCompletion(profile);
+      const profileResult = {
+        ...profile,
+        profileCompletion,
+      };
+
+      await this.redis.set(cacheKey, profileResult, this.CACHE_TTL);
+      return profileResult;
     } catch (error) {
       if (error instanceof NotFoundException) throw error;
       throw new InternalServerErrorException(
@@ -372,15 +409,39 @@ export class UserProfileService {
           });
         }
 
+        const profileCompletion = calculateUserProfileCompletion(updatedProfile);
+
+        const authUser = await tx.auth.findUnique({
+          where: { id: authId },
+        });
+
+        let tokens: any = null;
+        if (authUser) {
+          tokens = await this.authService.generateTokens(
+            authId,
+            authUser.email,
+            authUser.role,
+            profileCompletion.isProfileComplete,
+          );
+
+          await tx.refreshToken.create({
+            data: {
+              token: tokens.refreshToken,
+              authId: authUser.id,
+              expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+            },
+          });
+        }
+
         const res = {
           success: true,
-
           message: 'Profile updated successfully',
-
           profile: updatedProfile,
-
           healthGoal: updatedGoals || updatedProfile.healthGoal,
+          profileCompletion,
+          tokens,
         };
+
         await this.redis.del(`${this.CACHE_PREFIX}${authId}`);
         await this.redis.del(`auth:me:${authId}`);
         return res;

@@ -2,10 +2,11 @@ import { Module } from '@nestjs/common';
 import { ProviderProfileController } from './provider-profile.controller';
 import { ProviderProfileService } from './provider-profile.service';
 import { UploadFilesModule } from '../../common/upload-files/upload-files.module';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
   controllers: [ProviderProfileController],
   providers: [ProviderProfileService],
-  imports: [UploadFilesModule],
+  imports: [UploadFilesModule, AuthModule],
 })
 export class ProviderProfileModule {}

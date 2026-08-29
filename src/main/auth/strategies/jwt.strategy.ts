@@ -18,7 +18,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(payload: { sub: string; email: string }) {
+  async validate(payload: {
+    sub: string;
+    email: string;
+    role?: string;
+    isProfileComplete?: boolean;
+    tokenType?: string;
+  }) {
     const user = await this.prisma.auth.findUnique({
       where: { id: payload.sub },
     });
@@ -27,6 +33,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException('User not found');
     }
 
-    return user;
+    return {
+      ...user,
+      isProfileComplete: payload.isProfileComplete ?? false,
+      tokenType: payload.tokenType ?? 'FULL_ACCESS',
+    };
   }
 }

@@ -63,7 +63,7 @@ model UserProfile {
 
   healthGoal UserHealthGoal?
 
-   healthLogs UserDailyHealthLog[]
+  healthLogs UserDailyHealthLog[]
   dataAccessGrants ProviderDataAccess[]
 
   bookings Booking[]

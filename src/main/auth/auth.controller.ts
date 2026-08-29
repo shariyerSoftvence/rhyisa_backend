@@ -17,6 +17,7 @@ import {
   ChangePasswordDto,
   LogoutDto,
 } from './dto/auth-extra.dto';
+import { GenerateProfileTokenDto } from './dto/generate-profile-token.dto';
 import {
   ApiTags,
   ApiOperation,
@@ -56,6 +57,13 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'User successfully logged in' })
   async login(@Body() loginDto: LoginDto) {
     return await this.authService.login(loginDto);
+  }
+
+  @Post('generate-profile-token')
+  @ApiOperation({ summary: 'Generate profile completion token for incomplete profile registration' })
+  @ApiResponse({ status: 200, description: 'Profile completion token generated successfully' })
+  async generateProfileToken(@Body() dto: GenerateProfileTokenDto) {
+    return await this.authService.generateProfileToken(dto);
   }
 
   @Post('forgot-password')

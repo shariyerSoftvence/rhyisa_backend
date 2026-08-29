@@ -20,6 +20,8 @@ import Stripe from 'stripe';
 import { UploadFilesService } from '../../common/upload-files/upload-files.service';
 import { StripeConnectLinkDto } from './dto/stripe-onboarding.dto';
 import { RedisService } from '../../common/redis/redis.service';
+import { AuthService } from '../auth/auth.service';
+import { calculateProviderProfileCompletion } from '../../common/utils/profile-completion.util';
 
 @Injectable()
 export class ProviderProfileService {
@@ -29,6 +31,7 @@ export class ProviderProfileService {
     private readonly prisma: PrismaService,
     private readonly uploadFilesService: UploadFilesService,
     private readonly redis: RedisService,
+    private readonly authService: AuthService,
   ) {
     this.stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
       apiVersion: '2024-12-18.acacia' as any,
@@ -237,7 +240,32 @@ export class ProviderProfileService {
         });
 
         await this.clearProviderCaches(authId, newProfile.id);
-        return newProfile;
+
+        const profileCompletion = calculateProviderProfileCompletion(newProfile);
+
+        let tokens: any = null;
+        if (authUser) {
+          tokens = await this.authService.generateTokens(
+            authId,
+            authUser.email,
+            authUser.role,
+            profileCompletion.isProfileComplete,
+          );
+
+          await tx.refreshToken.create({
+            data: {
+              token: tokens.refreshToken,
+              authId: authUser.id,
+              expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+            },
+          });
+        }
+
+        return {
+          ...newProfile,
+          profileCompletion,
+          tokens,
+        };
       });
     } catch (error: any) {
       if (
